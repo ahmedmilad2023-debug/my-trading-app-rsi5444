@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>إشارات سكالبينغ - بولنجر باند</title>
-  <!-- مكتبة Lightweight Charts من jsDelivr -->
+  <title>إشارات سكالبينغ - 10 عملات</title>
   <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -18,6 +17,17 @@
     header { text-align: center; padding: 10px 0 20px; }
     header h1 { color: #f7931a; font-size: 1.8rem; letter-spacing: 1px; }
     .status-msg { text-align: center; color: #ff9800; margin: 5px 0; font-size: 0.9rem; }
+    .coin-selector {
+      display: flex; justify-content: center; margin: 15px 0; gap: 10px; flex-wrap: wrap;
+      background: #111620; padding: 10px; border-radius: 8px; border: 1px solid #1f2a3a;
+    }
+    .coin-selector select {
+      padding: 8px 12px; border-radius: 6px; background: #1f2a3a; color: #fff; border: 1px solid #2a3a4e;
+      font-size: 1rem;
+    }
+    .coin-selector button {
+      background: #f7931a; color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    }
     #chart-container {
       width: 100%; height: 450px; border-radius: 12px; overflow: hidden;
       background: #111620; border: 1px solid #1f2a3a; margin-top: 10px;
@@ -74,20 +84,36 @@
     <header>
       <h1>⚡ إشارات بولنجر باند × فيبوناتشي</h1>
       <button class="btn notification-btn" onclick="requestNotificationPermission()">🔔 تفعيل التنبيهات</button>
-      <div id="status-message" class="status-msg">⏳ جارٍ تحميل البيانات...</div>
+      <div id="status-message" class="status-msg">اختر عملة من القائمة</div>
     </header>
+
+    <div class="coin-selector">
+      <select id="coin-select">
+        <option value="BTCUSDT">BTCUSDT</option>
+        <option value="ETHUSDT">ETHUSDT</option>
+        <option value="SOLUSDT">SOLUSDT</option>
+        <option value="DOGEUSDT">DOGEUSDT</option>
+        <option value="ADAUSDT">ADAUSDT</option>
+        <option value="XRPUSDT">XRPUSDT</option>
+        <option value="DOTUSDT">DOTUSDT</option>
+        <option value="BNBUSDT">BNBUSDT</option>
+        <option value="AVAXUSDT">AVAXUSDT</option>
+        <option value="LINKUSDT">LINKUSDT</option>
+      </select>
+      <button onclick="switchCoin()">تحميل</button>
+    </div>
 
     <div id="chart-container"></div>
 
     <div class="signals-section">
-      <div class="section-title">📊 الإشارات المفتوحة</div>
-      <div id="open-signals">لم تظهر إشارات بعد</div>
+      <div class="section-title">📊 الإشارات المفتوحة (<span id="current-coin-label">BTCUSDT</span>)</div>
+      <div id="open-signals">لا توجد إشارات</div>
     </div>
 
     <div class="archive">
-      <div class="section-title">📁 الأرشيف (صفقات مغلقة)</div>
+      <div class="section-title">📁 أرشيف الصفقات المغلقة</div>
       <table class="archive-table" id="archive-table">
-        <thead><tr><th>التاريخ</th><th>نوع</th><th>دخول</th><th>خروج</th><th>ربح/خسارة %</th></tr></thead>
+        <thead><tr><th>العملة</th><th>التاريخ</th><th>نوع</th><th>دخول</th><th>خروج</th><th>ربح/خسارة %</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -102,30 +128,36 @@
   </div>
 
   <script>
-    // ---------- الإعدادات ----------
-    const SYMBOL = 'BTCUSDT';
-    const TIMEFRAME = '5m';
-    const BB_PERIOD = 20;
-    const BB_STD = 2;
-    const RSI_PERIOD = 14;
-    const LIMIT = 100; // عدد كافٍ من الشموع
+    // ---------- القائمة ----------
+    const COINS = [
+      'BTCUSDT','ETHUSDT','SOLUSDT','DOGEUSDT','ADAUSDT',
+      'XRPUSDT','DOTUSDT','BNBUSDT','AVAXUSDT','LINKUSDT'
+    ];
+    const BB_PERIOD = 20, BB_STD = 2, RSI_PERIOD = 14, LIMIT = 100;
 
-    // المتغيرات
+    let currentSymbol = 'BTCUSDT';
     let chart, candleSeries, bbUpperLine, bbLowerLine;
-    let currentSignals = [];
-    let closedSignals = JSON.parse(localStorage.getItem('closedSignals') || '[]');
     let allCandles = [];
+    let currentSignals = []; // للإشارات المفتوحة للعملة الحالية
+    let closedSignals = JSON.parse(localStorage.getItem('closedSignalsAll') || '[]');
     let ws = null;
 
-    // تحديث رسالة الحالة
+    // تحديث نص الحالة
     function setStatus(msg, isError = false) {
       const el = document.getElementById('status-message');
-      el.textContent = msg;
-      el.style.color = isError ? '#f44336' : '#ff9800';
+      if (el) {
+        el.textContent = msg;
+        el.style.color = isError ? '#f44336' : '#ff9800';
+      }
     }
 
-    // ---------- تهيئة الرسم البياني ----------
+    // ---------- الرسم البياني ----------
     function initChart() {
+      if (chart) {
+        chart.remove();
+        chart = null;
+      }
+      document.getElementById('chart-container').innerHTML = '';
       chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
         layout: { background: { type: 'solid', color: '#111620' }, textColor: '#d1d4dc' },
         grid: { vertLines: { color: '#1f2a3a' }, horzLines: { color: '#1f2a3a' } },
@@ -139,18 +171,16 @@
         borderUpColor: '#4caf50', borderDownColor: '#f44336',
         wickUpColor: '#4caf50', wickDownColor: '#f44336',
       });
-      // خطوط البولنجر (ستتحدث لاحقاً)
       bbUpperLine = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       bbLowerLine = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
     }
 
-    // ---------- جلب البيانات من Binance (مع معالجة الأخطاء) ----------
-    async function fetchHistoricalData() {
+    async function fetchHistoricalData(symbol) {
       try {
-        const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${TIMEFRAME}&limit=${LIMIT}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('فشل الاتصال بـ Binance');
-        const data = await response.json();
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=${LIMIT}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('فشل الاتصال');
+        const data = await res.json();
         return data.map(d => ({
           time: Math.floor(d[0] / 1000),
           open: parseFloat(d[1]),
@@ -158,14 +188,14 @@
           low: parseFloat(d[3]),
           close: parseFloat(d[4]),
         }));
-      } catch (err) {
-        console.error(err);
-        setStatus('❌ فشل جلب البيانات من Binance. تحقق من الاتصال أو جرب لاحقاً.', true);
+      } catch (e) {
+        console.error(e);
+        setStatus('❌ فشل جلب البيانات من Binance.', true);
         return [];
       }
     }
 
-    // ---------- المؤشرات الفنية ----------
+    // ---------- المؤشرات ----------
     function calculateBBands(candles) {
       const closes = candles.map(c => c.close);
       let upper = [], lower = [];
@@ -205,17 +235,15 @@
       return {
         high, low,
         fib618: high - (high - low) * 0.618,
-        fib5: high - (high - low) * 0.5,
       };
     }
 
-    // ---------- منطق الإشارات ----------
-    function checkForSignals(candles, rsiData, bbUpper, bbLower) {
+    function checkForSignals(candles, rsiData, bbUpper, bbLower, symbol) {
       if (candles.length < BB_PERIOD + 5) return;
       const last = candles[candles.length - 1];
       const prev = candles[candles.length - 2];
-      const lastRSI = rsiData[rsiData.length-1]?.value || 50;
-      const prevRSI = rsiData[rsiData.length-2]?.value || 50;
+      const lastRSI = rsiData[rsiData.length-1]?.value ?? 50;
+      const prevRSI = rsiData[rsiData.length-2]?.value ?? 50;
       const lastBBUpper = bbUpper[bbUpper.length-1]?.value;
       const lastBBLower = bbLower[bbLower.length-1]?.value;
       const prevBBUpper = bbUpper[bbUpper.length-2]?.value;
@@ -223,37 +251,36 @@
 
       if (!lastBBLower || !prevBBLower || !lastBBUpper || !prevBBUpper) return;
 
-      // شراء: ارتداد من الحد السفلي مع تشبع بيع
       if (prev.close < prevBBLower && prevRSI < 30 && last.close > lastBBLower && last.close > prev.close) {
         const fib = findFibLevels(candles.slice(-30));
         const entry = last.close;
         const stop = Math.min(prev.low, last.low) * 0.998;
         const target = fib.fib618;
-        if (target > entry && stop < entry && !signalExists('شراء', entry)) {
-          createSignal('شراء', entry, stop, target, 'ارتداد من الحد السفلي للبولنجر مع تشبع بيع RSI');
+        if (target > entry && stop < entry && !signalExists('شراء', entry, symbol)) {
+          createSignal('شراء', entry, stop, target, 'ارتداد من الحد السفلي مع تشبع بيع RSI', symbol);
         }
       }
-      // بيع: ارتداد من الحد العلوي مع تشبع شراء
       if (prev.close > prevBBUpper && prevRSI > 70 && last.close < lastBBUpper && last.close < prev.close) {
         const fib = findFibLevels(candles.slice(-30));
         const entry = last.close;
         const stop = Math.max(prev.high, last.high) * 1.002;
         const target = fib.fib618;
-        if (target < entry && stop > entry && !signalExists('بيع', entry)) {
-          createSignal('بيع', entry, stop, target, 'ارتداد من الحد العلوي للبولنجر مع تشبع شراء RSI');
+        if (target < entry && stop > entry && !signalExists('بيع', entry, symbol)) {
+          createSignal('بيع', entry, stop, target, 'ارتداد من الحد العلوي مع تشبع شراء RSI', symbol);
         }
       }
     }
 
-    function signalExists(type, entry) {
-      return currentSignals.some(s => s.type === type && Math.abs(s.entry - entry) / entry < 0.002);
+    function signalExists(type, entry, symbol) {
+      return currentSignals.some(s => s.type === type && s.symbol === symbol && Math.abs(s.entry - entry)/entry < 0.002);
     }
 
-    function createSignal(type, entry, stopLoss, target, analysis) {
+    function createSignal(type, entry, stopLoss, target, analysis, symbol) {
       const now = new Date();
       const signal = {
-        id: Date.now(),
+        id: Date.now() + Math.random(),
         type,
+        symbol,
         entry: entry.toFixed(2),
         stopLoss: stopLoss.toFixed(2),
         target: target.toFixed(2),
@@ -263,15 +290,15 @@
       };
       currentSignals.push(signal);
       renderSignals();
-      sendNotification(`إشارة ${type}`, `الدخول: ${entry} | الهدف: ${target} | الوقف: ${stopLoss}`);
+      sendNotification(`إشارة ${type} - ${symbol}`, `دخول: ${entry} | هدف: ${target} | وقف: ${stopLoss}`);
     }
 
     function closeSignal(id, exitPrice, reason) {
-      const signal = currentSignals.find(s => s.id === id);
+      const signal = currentSignals.find(s => s.id == id);
       if (!signal) return;
       const entry = parseFloat(signal.entry);
       const exit = parseFloat(exitPrice);
-      const pnl = signal.type === 'شراء' ? ((exit - entry) / entry * 100) : ((entry - exit) / entry * 100);
+      const pnl = signal.type === 'شراء' ? ((exit-entry)/entry*100) : ((entry-exit)/entry*100);
       const closed = {
         ...signal,
         exitPrice: exit.toFixed(2),
@@ -280,21 +307,22 @@
         reason
       };
       closedSignals.push(closed);
-      localStorage.setItem('closedSignals', JSON.stringify(closedSignals));
-      currentSignals = currentSignals.filter(s => s.id !== id);
+      localStorage.setItem('closedSignalsAll', JSON.stringify(closedSignals));
+      currentSignals = currentSignals.filter(s => s.id != id);
       renderSignals();
       renderArchive();
-      sendNotification('صفقة مغلقة', `${signal.type} | ${closed.pnl}`);
+      sendNotification('صفقة مغلقة', `${signal.symbol} - ${signal.type} | ${closed.pnl}`);
     }
 
-    // ---------- عرض المكونات ----------
+    // ---------- واجهة المستخدم ----------
     function renderSignals() {
       const container = document.getElementById('open-signals');
-      if (currentSignals.length === 0) {
+      const filtered = currentSignals.filter(s => s.symbol === currentSymbol);
+      if (filtered.length === 0) {
         container.innerHTML = '<p style="color:#9aa0b0; text-align:center;">لا توجد إشارات مفتوحة حالياً</p>';
         return;
       }
-      container.innerHTML = currentSignals.map(s => `
+      container.innerHTML = filtered.map(s => `
         <div class="signal-card">
           <div class="signal-header">
             <span class="signal-type ${s.type==='شراء'?'long':'short'}">${s.type}</span>
@@ -306,7 +334,7 @@
             <div class="detail-item"><span>الوقف:</span> ${s.stopLoss}</div>
           </div>
           <div class="actions">
-            <button class="btn share" onclick="shareSignal('${s.type} دخول ${s.entry} هدف ${s.target} وقف ${s.stopLoss}')">📤 مشاركة</button>
+            <button class="btn share" onclick="shareSignal('${s.symbol} ${s.type} دخول ${s.entry} هدف ${s.target} وقف ${s.stopLoss}')">📤 مشاركة</button>
             <button class="btn analysis" onclick="showAnalysis(\`${s.analysis}\`)">🔍 تحليل</button>
             <button class="btn" onclick="closeSignal(${s.id}, ${s.type==='شراء'?s.entry:s.entry}, 'يدوي')">✖ إغلاق يدوي</button>
           </div>
@@ -316,8 +344,9 @@
 
     function renderArchive() {
       const tbody = document.querySelector('#archive-table tbody');
-      tbody.innerHTML = closedSignals.slice(-20).reverse().map(s => `
+      tbody.innerHTML = closedSignals.slice(-30).reverse().map(s => `
         <tr>
+          <td>${s.symbol}</td>
           <td>${s.closeTime}</td>
           <td class="${s.type==='شراء'?'long':'short'}">${s.type}</td>
           <td>${s.entry}</td>
@@ -328,9 +357,8 @@
     }
 
     function shareSignal(text) {
-      navigator.clipboard.writeText(text).then(() => alert('تم نسخ نص الإشارة!'));
+      navigator.clipboard.writeText(text).then(() => alert('تم نسخ النص'));
     }
-
     function showAnalysis(text) {
       document.getElementById('analysis-text').innerText = text;
       document.getElementById('analysis-modal').style.display = 'flex';
@@ -338,29 +366,48 @@
     function closeModal() {
       document.getElementById('analysis-modal').style.display = 'none';
     }
-
     function requestNotificationPermission() {
-      if (!("Notification" in window)) { alert("المتصفح لا يدعم التنبيهات"); return; }
-      Notification.requestPermission().then(perm => {
-        if (perm === "granted") alert("تم تفعيل التنبيهات");
-        else alert("تم رفض التنبيهات");
+      if (!("Notification" in window)) return alert("لا يدعم المتصفح");
+      Notification.requestPermission().then(p => {
+        alert(p === "granted" ? "تم التفعيل" : "تم الرفض");
       });
     }
-
     function sendNotification(title, body) {
       if (Notification.permission === "granted") {
-        new Notification(title, { body, icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" });
+        new Notification(title, { body });
       }
     }
 
-    // ---------- التحديث الحي عبر WebSocket ----------
-    function startLiveUpdates() {
+    // ---------- التبديل بين العملات ----------
+    async function loadCoin(symbol) {
+      if (ws) { ws.close(); ws = null; }
+      currentSymbol = symbol;
+      document.getElementById('current-coin-label').textContent = symbol;
+      setStatus('⏳ جارٍ تحميل ' + symbol + '...');
+      const candles = await fetchHistoricalData(symbol);
+      if (candles.length === 0) {
+        setStatus('❌ فشل تحميل ' + symbol, true);
+        return;
+      }
+      allCandles = candles;
+      candleSeries.setData(candles);
+      const { upper, lower } = calculateBBands(candles);
+      const rsiData = calculateRSI(candles);
+      bbUpperLine.setData(upper);
+      bbLowerLine.setData(lower);
+      checkForSignals(candles, rsiData, upper, lower, symbol);
+      setStatus('✅ متصل بـ ' + symbol);
+      renderSignals();
+      startLiveUpdates(symbol);
+    }
+
+    function startLiveUpdates(symbol) {
       if (ws) ws.close();
-      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${SYMBOL.toLowerCase()}@kline_${TIMEFRAME}`);
+      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_5m`);
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         const k = msg.k;
-        if (!k.x) return; // فقط عند اكتمال الشمعة
+        if (!k.x) return;
         const newCandle = {
           time: Math.floor(k.t / 1000),
           open: parseFloat(k.o),
@@ -368,64 +415,44 @@
           low: parseFloat(k.l),
           close: parseFloat(k.c),
         };
-        // تحديث المصفوفة مع تجنب التكرار
-        const existingIndex = allCandles.findIndex(c => c.time === newCandle.time);
-        if (existingIndex !== -1) {
-          allCandles[existingIndex] = newCandle;
+        const idx = allCandles.findIndex(c => c.time === newCandle.time);
+        if (idx !== -1) {
+          allCandles[idx] = newCandle;
           candleSeries.update(newCandle);
         } else {
           allCandles.push(newCandle);
           candleSeries.update(newCandle);
         }
-        // إعادة حساب المؤشرات وفحص الإشارات
         const { upper, lower } = calculateBBands(allCandles);
         const rsiData = calculateRSI(allCandles);
         bbUpperLine.setData(upper);
         bbLowerLine.setData(lower);
-        checkForSignals(allCandles, rsiData, upper, lower);
-
-        // فحص إغلاق الصفقات المفتوحة بالسعر الجديد
-        currentSignals.forEach(signal => {
-          const target = parseFloat(signal.target);
-          const stop = parseFloat(signal.stopLoss);
-          const price = newCandle.close;
-          if (signal.type === 'شراء') {
-            if (price >= target) closeSignal(signal.id, target, 'هدف');
-            else if (price <= stop) closeSignal(signal.id, stop, 'وقف خسارة');
+        checkForSignals(allCandles, rsiData, upper, lower, symbol);
+        currentSignals.forEach(s => {
+          if (s.symbol !== symbol) return;
+          const target = parseFloat(s.target);
+          const stop = parseFloat(s.stopLoss);
+          if (s.type === 'شراء') {
+            if (newCandle.close >= target) closeSignal(s.id, target, 'هدف');
+            else if (newCandle.close <= stop) closeSignal(s.id, stop, 'وقف خسارة');
           } else {
-            if (price <= target) closeSignal(signal.id, target, 'هدف');
-            else if (price >= stop) closeSignal(signal.id, stop, 'وقف خسارة');
+            if (newCandle.close <= target) closeSignal(s.id, target, 'هدف');
+            else if (newCandle.close >= stop) closeSignal(s.id, stop, 'وقف خسارة');
           }
         });
       };
-      ws.onerror = () => setStatus('⚠️ خطأ في اتصال WebSocket، جاري إعادة المحاولة...', true);
+      ws.onerror = () => setStatus('⚠️ خطأ WebSocket', true);
     }
 
-    // ---------- بدء التشغيل ----------
-    async function startApp() {
-      setStatus('⏳ جارٍ تحميل البيانات التاريخية...');
-      const candles = await fetchHistoricalData();
-      if (candles.length === 0) {
-        setStatus('❌ لا توجد بيانات. تأكد من اتصال الانترنت أو جرب لاحقاً.', true);
-        return;
-      }
-      allCandles = candles;
-      // رسم الشموع والمؤشرات
-      candleSeries.setData(candles);
-      const { upper, lower } = calculateBBands(candles);
-      const rsiData = calculateRSI(candles);
-      bbUpperLine.setData(upper);
-      bbLowerLine.setData(lower);
-      // فحص الإشارات الأولية
-      checkForSignals(candles, rsiData, upper, lower);
-      setStatus('✅ متصل بالبيانات الحية من Binance');
-      renderArchive();
-      startLiveUpdates();
+    function switchCoin() {
+      const select = document.getElementById('coin-select');
+      loadCoin(select.value);
     }
 
     window.onload = () => {
       initChart();
-      startApp();
+      loadCoin('BTCUSDT');
+      renderArchive();
     };
   </script>
 </body>
