@@ -9,11 +9,12 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     
     <!-- TradingView Lightweight Charts -->
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js">
+    </script>
     
     <style>
         /* ============================================================
-           CSS - STYLES
+           CSS - STYLES (نسخة مبسطة ومحسنة)
            ============================================================ */
         * {
             margin: 0;
@@ -106,8 +107,13 @@
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
         }
         
         .btn-icon {
@@ -675,7 +681,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.75);
+            background: rgba(0, 0, 0, 0.75);
             z-index: 2000;
             justify-content: center;
             align-items: center;
@@ -813,12 +819,12 @@
         <header class="main-header">
             <div class="logo-container">
                 <span class="logo-text">📊 Crypto SMC AI Pro</span>
-                <span class="version">v3.0.0</span>
+                <span class="version">v3.0.1</span>
             </div>
             <div class="header-controls">
                 <div class="status-indicator">
                     <span class="status-dot"></span>
-                    <span id="status-text">متصل</span>
+                    <span id="status-text">جاري التحميل...</span>
                 </div>
                 <button id="settings-btn" class="btn-icon">⚙️</button>
             </div>
@@ -832,7 +838,9 @@
                     <div class="sidebar-section-title">🔍 البحث عن عملة</div>
                     <div class="symbol-search">
                         <input type="text" id="symbol-search" placeholder="مثال: BTCUSDT">
-                        <div id="symbol-list" class="symbol-list"></div>
+                        <div id="symbol-list" class="symbol-list">
+                            <div style="padding:8px;color:#8b949e;font-size:12px;text-align:center;">⏳ جاري تحميل العملات...</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -949,11 +957,11 @@
     </div>
 
     <!-- ============================================================
-    JAVASCRIPT - FULL APPLICATION
+    JAVASCRIPT - FULL APPLICATION (مُعاد كتابته بالكامل)
     ============================================================ -->
     <script>
         // ============================================================
-        // CONFIGURATION
+        // 1. CONFIGURATION
         // ============================================================
         const CONFIG = {
             riskPercent: 2,
@@ -967,12 +975,62 @@
             symbol: 'BTCUSDT',
             timeframe: '1m',
             scanInterval: 30000, // 30 seconds
-            maxCandles: 500,
+            maxCandles: 300,
             apiBase: 'https://api.binance.com'
         };
 
+        console.log('🚀 [CONFIG] تم تحميل الإعدادات:', CONFIG);
+
         // ============================================================
-        // DATA STORE
+        // 2. UTILITY FUNCTIONS
+        // ============================================================
+        const Utils = {
+            round(val, decimals) {
+                if (val === undefined || val === null || isNaN(val)) return 0;
+                const factor = Math.pow(10, decimals || 2);
+                return Math.round(val * factor) / factor;
+            },
+            timestamp() {
+                try { return new Date().toLocaleTimeString('ar-EG'); } catch (e) { return '--:--:--'; }
+            },
+            formatPrice(p) {
+                if (p === undefined || p === null || isNaN(p)) return '--';
+                if (p >= 100) return p.toFixed(2);
+                if (p >= 1) return p.toFixed(4);
+                return p.toFixed(6);
+            },
+            formatPercent(p) {
+                if (p === undefined || p === null || isNaN(p)) return '0%';
+                return (p * 100).toFixed(1) + '%';
+            },
+            sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
+            calculateConfidence(conditions) {
+                if (!conditions || typeof conditions !== 'object') return 0;
+                const entries = Object.entries(conditions);
+                if (entries.length === 0) return 0;
+                const met = entries.filter(([k, v]) => v === true).length;
+                return Math.round((met / entries.length) * 100);
+            },
+            safeString(val) {
+                if (val === undefined || val === null) return '--';
+                return String(val);
+            },
+            log(level, message, data) {
+                const prefix = `[${new Date().toLocaleTimeString()}]`;
+                if (level === 'error') {
+                    console.error(prefix, message, data || '');
+                } else if (level === 'warn') {
+                    console.warn(prefix, message, data || '');
+                } else {
+                    console.log(prefix, message, data || '');
+                }
+            }
+        };
+
+        console.log('✅ [Utils] تم تحميل الأدوات المساعدة');
+
+        // ============================================================
+        // 3. DATA STORE
         // ============================================================
         const DataStore = {
             symbols: [],
@@ -994,51 +1052,35 @@
                 structure: { bos: [], choch: [] }
             },
             isScanning: false,
-            lastScan: 0
+            lastScan: 0,
+            chartInitialized: false,
+            isReady: false
         };
 
-        // ============================================================
-        // UTILITY FUNCTIONS
-        // ============================================================
-        const Utils = {
-            round(val, decimals = 2) { return Number(val.toFixed(decimals)); },
-            timestamp() { return new Date().toLocaleTimeString('ar-EG'); },
-            formatPrice(p) {
-                if (!p) return '--';
-                return p >= 100 ? p.toFixed(2) : p >= 1 ? p.toFixed(4) : p.toFixed(6);
-            },
-            formatPercent(p) { return (p * 100).toFixed(1) + '%'; },
-            sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
-            calculateConfidence(conditions) {
-                const total = Object.keys(conditions).length;
-                const met = Object.values(conditions).filter(v => v === true).length;
-                return Math.round((met / total) * 100);
-            },
-            isBullishCandle(c) { return c.close > c.open; },
-            isBearishCandle(c) { return c.close < c.open; },
-            highest(arr, key) { return Math.max(...arr.map(c => c[key])); },
-            lowest(arr, key) { return Math.min(...arr.map(c => c[key])); },
-            sma(arr, period) {
-                if (arr.length < period) return arr.reduce((a, b) => a + b, 0) / arr.length;
-                return arr.slice(-period).reduce((a, b) => a + b, 0) / period;
-            }
-        };
+        console.log('✅ [DataStore] تم تهيئة مخزن البيانات');
 
         // ============================================================
-        // BINANCE API - DATA FETCHER
+        // 4. BINANCE API - DATA FETCHER (مع معالجة الأخطاء)
         // ============================================================
         class BinanceAPI {
             static async getSymbols() {
+                Utils.log('info', '🔄 جاري تحميل قائمة العملات من Binance...');
                 try {
                     const resp = await fetch(`${CONFIG.apiBase}/api/v3/exchangeInfo`);
+                    if (!resp.ok) {
+                        throw new Error(`HTTP error! status: ${resp.status}`);
+                    }
                     const data = await resp.json();
-                    return data.symbols
+                    const symbols = data.symbols
                         .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING')
                         .map(s => s.symbol)
                         .slice(0, 30);
+                    Utils.log('info', `✅ تم تحميل ${symbols.length} عملة`);
+                    return symbols;
                 } catch (e) {
-                    console.warn('Failed to fetch symbols:', e);
-                    return ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT'];
+                    Utils.log('error', '❌ فشل تحميل العملات:', e.message);
+                    // قائمة افتراضية في حالة الفشل
+                    return ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT'];
                 }
             }
 
@@ -1046,10 +1088,17 @@
                 const intervals = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
                 const interval = intervals[timeframe] || '1m';
                 try {
-                    const url = `${CONFIG.apiBase}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+                    const url =
+                        `${CONFIG.apiBase}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
                     const resp = await fetch(url);
+                    if (!resp.ok) {
+                        throw new Error(`HTTP error! status: ${resp.status}`);
+                    }
                     const data = await resp.json();
-                    return data.map(k => ({
+                    if (!data || !Array.isArray(data) || data.length === 0) {
+                        throw new Error('No data received');
+                    }
+                    const candles = data.map(k => ({
                         timestamp: k[0],
                         open: parseFloat(k[1]),
                         high: parseFloat(k[2]),
@@ -1057,8 +1106,10 @@
                         close: parseFloat(k[4]),
                         volume: parseFloat(k[5])
                     }));
+                    Utils.log('info', `✅ تم تحميل ${candles.length} شمعة لـ ${symbol}`);
+                    return candles;
                 } catch (e) {
-                    console.warn(`Failed to fetch candles for ${symbol}:`, e);
+                    Utils.log('error', `❌ فشل تحميل شموع ${symbol}:`, e.message);
                     return [];
                 }
             }
@@ -1066,271 +1117,306 @@
             static async getCurrentPrice(symbol) {
                 try {
                     const resp = await fetch(`${CONFIG.apiBase}/api/v3/ticker/price?symbol=${symbol}`);
+                    if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
                     const data = await resp.json();
                     return parseFloat(data.price);
                 } catch (e) {
+                    Utils.log('warn', `⚠️ فشل تحميل السعر الحالي لـ ${symbol}:`, e.message);
                     return 0;
                 }
             }
         }
 
+        console.log('✅ [BinanceAPI] تم تحميل واجهة API');
+
         // ============================================================
-        // SMC INDICATORS (REAL DATA ONLY)
+        // 5. SMC INDICATORS (مع معالجة الأخطاء)
         // ============================================================
         class SMCIndicators {
-            // --- ADX ---
             static calculateADX(candles, period = 14) {
-                if (candles.length < period + 1) return { adx: 0, plusDI: 0, minusDI: 0 };
-                const high = candles.map(c => c.high);
-                const low = candles.map(c => c.low);
-                const close = candles.map(c => c.close);
-                let tr = [], plusDM = [], minusDM = [];
-                for (let i = 1; i < candles.length; i++) {
-                    const hl = high[i] - low[i];
-                    const hc = Math.abs(high[i] - close[i - 1]);
-                    const lc = Math.abs(low[i] - close[i - 1]);
-                    tr.push(Math.max(hl, hc, lc));
-                    const up = high[i] - high[i - 1];
-                    const down = low[i - 1] - low[i];
-                    plusDM.push(up > down && up > 0 ? up : 0);
-                    minusDM.push(down > up && down > 0 ? down : 0);
+                if (!candles || candles.length < period + 1) {
+                    return { adx: 0, plusDI: 0, minusDI: 0 };
                 }
-                const smooth = (arr, p) => {
-                    let result = [];
-                    let sum = arr.slice(0, p).reduce((a, b) => a + b, 0);
-                    result.push(sum / p);
-                    for (let i = p; i < arr.length; i++) {
-                        sum = (sum * (p - 1) + arr[i]) / p;
-                        result.push(sum);
+                try {
+                    const high = candles.map(c => c.high);
+                    const low = candles.map(c => c.low);
+                    const close = candles.map(c => c.close);
+                    let tr = [],
+                        plusDM = [],
+                        minusDM = [];
+                    for (let i = 1; i < candles.length; i++) {
+                        const hl = high[i] - low[i];
+                        const hc = Math.abs(high[i] - close[i - 1]);
+                        const lc = Math.abs(low[i] - close[i - 1]);
+                        tr.push(Math.max(hl, hc, lc));
+                        const up = high[i] - high[i - 1];
+                        const down = low[i - 1] - low[i];
+                        plusDM.push(up > down && up > 0 ? up : 0);
+                        minusDM.push(down > up && down > 0 ? down : 0);
                     }
-                    return result;
-                };
-                const smoothTR = smooth(tr, period);
-                const smoothPlusDM = smooth(plusDM, period);
-                const smoothMinusDM = smooth(minusDM, period);
-                const plusDI = smoothPlusDM.map((v, i) => (v / smoothTR[i]) * 100);
-                const minusDI = smoothMinusDM.map((v, i) => (v / smoothTR[i]) * 100);
-                const dx = plusDI.map((p, i) => {
-                    const m = minusDI[i];
-                    return (Math.abs(p - m) / (p + m)) * 100;
-                });
-                const adx = smooth(dx, period);
-                return {
-                    adx: adx.length > 0 ? adx[adx.length - 1] : 0,
-                    plusDI: plusDI.length > 0 ? plusDI[plusDI.length - 1] : 0,
-                    minusDI: minusDI.length > 0 ? minusDI[minusDI.length - 1] : 0
-                };
+                    const smooth = (arr, p) => {
+                        let result = [];
+                        let sum = arr.slice(0, p).reduce((a, b) => a + b, 0);
+                        result.push(sum / p);
+                        for (let i = p; i < arr.length; i++) {
+                            sum = (sum * (p - 1) + arr[i]) / p;
+                            result.push(sum);
+                        }
+                        return result;
+                    };
+                    const smoothTR = smooth(tr, period);
+                    const smoothPlusDM = smooth(plusDM, period);
+                    const smoothMinusDM = smooth(minusDM, period);
+                    const plusDI = smoothPlusDM.map((v, i) => (v / smoothTR[i]) * 100);
+                    const minusDI = smoothMinusDM.map((v, i) => (v / smoothTR[i]) * 100);
+                    const dx = plusDI.map((p, i) => {
+                        const m = minusDI[i];
+                        return (Math.abs(p - m) / (p + m)) * 100;
+                    });
+                    const adx = smooth(dx, period);
+                    return {
+                        adx: adx.length > 0 ? adx[adx.length - 1] : 0,
+                        plusDI: plusDI.length > 0 ? plusDI[plusDI.length - 1] : 0,
+                        minusDI: minusDI.length > 0 ? minusDI[minusDI.length - 1] : 0
+                    };
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب ADX:', e.message);
+                    return { adx: 0, plusDI: 0, minusDI: 0 };
+                }
             }
 
-            // --- ATR ---
             static calculateATR(candles, period = 14) {
-                if (candles.length < period + 1) return 0;
-                let tr = [];
-                for (let i = 1; i < candles.length; i++) {
-                    const hl = candles[i].high - candles[i].low;
-                    const hc = Math.abs(candles[i].high - candles[i - 1].close);
-                    const lc = Math.abs(candles[i].low - candles[i - 1].close);
-                    tr.push(Math.max(hl, hc, lc));
+                if (!candles || candles.length < period + 1) return 0;
+                try {
+                    let tr = [];
+                    for (let i = 1; i < candles.length; i++) {
+                        const hl = candles[i].high - candles[i].low;
+                        const hc = Math.abs(candles[i].high - candles[i - 1].close);
+                        const lc = Math.abs(candles[i].low - candles[i - 1].close);
+                        tr.push(Math.max(hl, hc, lc));
+                    }
+                    let atr = tr.slice(0, period).reduce((a, b) => a + b, 0) / period;
+                    for (let i = period; i < tr.length; i++) {
+                        atr = (atr * (period - 1) + tr[i]) / period;
+                    }
+                    return atr || 0;
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب ATR:', e.message);
+                    return 0;
                 }
-                let atr = tr.slice(0, period).reduce((a, b) => a + b, 0) / period;
-                for (let i = period; i < tr.length; i++) {
-                    atr = (atr * (period - 1) + tr[i]) / period;
-                }
-                return atr;
             }
 
-            // --- Order Blocks (SMC) ---
             static findOrderBlocks(candles, lookback = 100) {
-                if (candles.length < 20) return { bullish: [], bearish: [] };
-                const blocks = { bullish: [], bearish: [] };
-                const start = Math.max(0, candles.length - lookback);
-                for (let i = start + 5; i < candles.length - 3; i++) {
-                    const c = candles[i];
-                    if (c.close > c.open) {
-                        // Bullish OB: strong green candle, then price retests
-                        const isStrong = (c.close - c.open) > (c.high - c.low) * 0.6;
-                        if (isStrong && c.low < c.open) {
-                            // Check if price later retested this level
-                            for (let j = i + 2; j < Math.min(i + 15, candles.length); j++) {
-                                if (candles[j].low <= c.low * 1.002 && candles[j].close > candles[j].open) {
-                                    blocks.bullish.push({ index: i, price: c.low, high: c.high });
-                                    break;
+                if (!candles || candles.length < 20) return { bullish: [], bearish: [] };
+                try {
+                    const blocks = { bullish: [], bearish: [] };
+                    const start = Math.max(0, candles.length - lookback);
+                    for (let i = start + 5; i < candles.length - 3; i++) {
+                        const c = candles[i];
+                        if (c.close > c.open) {
+                            const isStrong = (c.close - c.open) > (c.high - c.low) * 0.6;
+                            if (isStrong && c.low < c.open) {
+                                for (let j = i + 2; j < Math.min(i + 15, candles.length); j++) {
+                                    if (candles[j].low <= c.low * 1.002 && candles[j].close > candles[j].open) {
+                                        blocks.bullish.push({ index: i, price: c.low, high: c.high });
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        // Bearish OB: strong red candle
-                        const isStrong = (c.open - c.close) > (c.high - c.low) * 0.6;
-                        if (isStrong && c.high > c.open) {
-                            for (let j = i + 2; j < Math.min(i + 15, candles.length); j++) {
-                                if (candles[j].high >= c.high * 0.998 && candles[j].close < candles[j].open) {
-                                    blocks.bearish.push({ index: i, price: c.high, low: c.low });
-                                    break;
+                        } else {
+                            const isStrong = (c.open - c.close) > (c.high - c.low) * 0.6;
+                            if (isStrong && c.high > c.open) {
+                                for (let j = i + 2; j < Math.min(i + 15, candles.length); j++) {
+                                    if (candles[j].high >= c.high * 0.998 && candles[j].close < candles[j].open) {
+                                        blocks.bearish.push({ index: i, price: c.high, low: c.low });
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
+                    return blocks;
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب Order Blocks:', e.message);
+                    return { bullish: [], bearish: [] };
                 }
-                return blocks;
             }
 
-            // --- Liquidity Sweep ---
             static findLiquiditySweeps(candles, lookback = 50) {
-                if (candles.length < 10) return { sweeps: [] };
-                const sweeps = [];
-                const start = Math.max(0, candles.length - lookback);
-                for (let i = start + 4; i < candles.length - 3; i++) {
-                    const c = candles[i];
-                    const prev4 = candles.slice(i - 4, i);
-                    const prevLow = Math.min(...prev4.map(x => x.low));
-                    const prevHigh = Math.max(...prev4.map(x => x.high));
-                    // Bullish sweep: break below previous low, then close green
-                    if (c.low < prevLow && c.close > c.open && c.close > prev4[prev4.length - 1].close) {
-                        sweeps.push({ index: i, type: 'bullish', price: c.low });
+                if (!candles || candles.length < 10) return { sweeps: [] };
+                try {
+                    const sweeps = [];
+                    const start = Math.max(0, candles.length - lookback);
+                    for (let i = start + 4; i < candles.length - 3; i++) {
+                        const c = candles[i];
+                        const prev4 = candles.slice(i - 4, i);
+                        const prevLow = Math.min(...prev4.map(x => x.low));
+                        const prevHigh = Math.max(...prev4.map(x => x.high));
+                        if (c.low < prevLow && c.close > c.open && c.close > prev4[prev4.length - 1].close) {
+                            sweeps.push({ index: i, type: 'bullish', price: c.low });
+                        }
+                        if (c.high > prevHigh && c.close < c.open && c.close < prev4[prev4.length - 1].close) {
+                            sweeps.push({ index: i, type: 'bearish', price: c.high });
+                        }
                     }
-                    // Bearish sweep: break above previous high, then close red
-                    if (c.high > prevHigh && c.close < c.open && c.close < prev4[prev4.length - 1].close) {
-                        sweeps.push({ index: i, type: 'bearish', price: c.high });
-                    }
+                    return { sweeps };
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب Liquidity Sweeps:', e.message);
+                    return { sweeps: [] };
                 }
-                return { sweeps };
             }
 
-            // --- Fair Value Gap (FVG) ---
             static findFVG(candles, lookback = 100) {
-                if (candles.length < 5) return { bullish: [], bearish: [] };
-                const fvg = { bullish: [], bearish: [] };
-                const start = Math.max(0, candles.length - lookback);
-                for (let i = start + 2; i < candles.length - 2; i++) {
-                    const c1 = candles[i - 1];
-                    const c2 = candles[i];
-                    const c3 = candles[i + 1];
-                    // Bullish FVG: gap between c1 high and c3 low
-                    if (c1.high < c3.low && c2.close > c2.open) {
-                        fvg.bullish.push({ index: i, top: c3.low, bottom: c1.high });
+                if (!candles || candles.length < 5) return { bullish: [], bearish: [] };
+                try {
+                    const fvg = { bullish: [], bearish: [] };
+                    const start = Math.max(0, candles.length - lookback);
+                    for (let i = start + 2; i < candles.length - 2; i++) {
+                        const c1 = candles[i - 1];
+                        const c2 = candles[i];
+                        const c3 = candles[i + 1];
+                        if (c1.high < c3.low && c2.close > c2.open) {
+                            fvg.bullish.push({ index: i, top: c3.low, bottom: c1.high });
+                        }
+                        if (c1.low > c3.high && c2.close < c2.open) {
+                            fvg.bearish.push({ index: i, top: c1.low, bottom: c3.high });
+                        }
                     }
-                    // Bearish FVG: gap between c1 low and c3 high
-                    if (c1.low > c3.high && c2.close < c2.open) {
-                        fvg.bearish.push({ index: i, top: c1.low, bottom: c3.high });
-                    }
+                    return fvg;
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب FVG:', e.message);
+                    return { bullish: [], bearish: [] };
                 }
-                return fvg;
             }
 
-            // --- Market Structure (BOS & CHoCH) ---
             static findMarketStructure(candles, lookback = 100) {
-                if (candles.length < 30) return { bos: [], choch: [] };
-                const structure = { bos: [], choch: [] };
-                const start = Math.max(0, candles.length - lookback);
-                let swingHighs = [], swingLows = [];
-                for (let i = start + 5; i < candles.length - 5; i++) {
-                    const c = candles[i];
-                    const prev5 = candles.slice(i - 5, i);
-                    const next5 = candles.slice(i + 1, i + 6);
-                    if (c.high > Math.max(...prev5.map(x => x.high)) &&
-                        c.high > Math.max(...next5.map(x => x.high))) {
-                        swingHighs.push({ index: i, price: c.high });
+                if (!candles || candles.length < 30) return { bos: [], choch: [] };
+                try {
+                    const structure = { bos: [], choch: [] };
+                    const start = Math.max(0, candles.length - lookback);
+                    let swingHighs = [],
+                        swingLows = [];
+                    for (let i = start + 5; i < candles.length - 5; i++) {
+                        const c = candles[i];
+                        const prev5 = candles.slice(i - 5, i);
+                        const next5 = candles.slice(i + 1, i + 6);
+                        if (c.high > Math.max(...prev5.map(x => x.high)) &&
+                            c.high > Math.max(...next5.map(x => x.high))) {
+                            swingHighs.push({ index: i, price: c.high });
+                        }
+                        if (c.low < Math.min(...prev5.map(x => x.low)) &&
+                            c.low < Math.min(...next5.map(x => x.low))) {
+                            swingLows.push({ index: i, price: c.low });
+                        }
                     }
-                    if (c.low < Math.min(...prev5.map(x => x.low)) &&
-                        c.low < Math.min(...next5.map(x => x.low))) {
-                        swingLows.push({ index: i, price: c.low });
+                    if (swingHighs.length > 2) {
+                        const lastHigh = swingHighs[swingHighs.length - 1];
+                        const prevHigh = swingHighs[swingHighs.length - 2];
+                        if (lastHigh.price > prevHigh.price) {
+                            structure.choch.push({ type: 'bullish', index: lastHigh.index, price: lastHigh.price });
+                        }
                     }
+                    if (swingLows.length > 2) {
+                        const lastLow = swingLows[swingLows.length - 1];
+                        const prevLow = swingLows[swingLows.length - 2];
+                        if (lastLow.price < prevLow.price) {
+                            structure.choch.push({ type: 'bearish', index: lastLow.index, price: lastLow.price });
+                        }
+                    }
+                    if (swingHighs.length > 1) {
+                        const last = swingHighs[swingHighs.length - 1];
+                        const prev = swingHighs[swingHighs.length - 2];
+                        if (last.price > prev.price) {
+                            structure.bos.push({ type: 'bullish', index: last.index, price: last.price });
+                        }
+                    }
+                    if (swingLows.length > 1) {
+                        const last = swingLows[swingLows.length - 1];
+                        const prev = swingLows[swingLows.length - 2];
+                        if (last.price < prev.price) {
+                            structure.bos.push({ type: 'bearish', index: last.index, price: last.price });
+                        }
+                    }
+                    return structure;
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب Market Structure:', e.message);
+                    return { bos: [], choch: [] };
                 }
-                // CHoCH: Change of Character - break of last swing
-                if (swingHighs.length > 2) {
-                    const lastHigh = swingHighs[swingHighs.length - 1];
-                    const prevHigh = swingHighs[swingHighs.length - 2];
-                    if (lastHigh.price > prevHigh.price) {
-                        structure.choch.push({ type: 'bullish', index: lastHigh.index, price: lastHigh.price });
-                    }
-                }
-                if (swingLows.length > 2) {
-                    const lastLow = swingLows[swingLows.length - 1];
-                    const prevLow = swingLows[swingLows.length - 2];
-                    if (lastLow.price < prevLow.price) {
-                        structure.choch.push({ type: 'bearish', index: lastLow.index, price: lastLow.price });
-                    }
-                }
-                // BOS: Break of Structure
-                if (swingHighs.length > 1) {
-                    const last = swingHighs[swingHighs.length - 1];
-                    const prev = swingHighs[swingHighs.length - 2];
-                    if (last.price > prev.price) {
-                        structure.bos.push({ type: 'bullish', index: last.index, price: last.price });
-                    }
-                }
-                if (swingLows.length > 1) {
-                    const last = swingLows[swingLows.length - 1];
-                    const prev = swingLows[swingLows.length - 2];
-                    if (last.price < prev.price) {
-                        structure.bos.push({ type: 'bearish', index: last.index, price: last.price });
-                    }
-                }
-                return structure;
             }
 
-            // --- Volume Profile (POC, VAH, VAL) ---
             static calculateVolumeProfile(candles, levels = 30) {
-                if (candles.length < 10) return { poc: 0, vah: 0, val: 0 };
-                const prices = candles.map(c => (c.high + c.low) / 2);
-                const volumes = candles.map(c => c.volume || 1);
-                const minP = Math.min(...prices);
-                const maxP = Math.max(...prices);
-                const step = (maxP - minP) / levels;
-                if (step === 0) return { poc: prices[0], vah: prices[0], val: prices[0] };
-                const buckets = Array(levels).fill(0);
-                prices.forEach((p, i) => {
-                    const idx = Math.min(Math.floor((p - minP) / step), levels - 1);
-                    buckets[idx] += volumes[i];
-                });
-                const maxIdx = buckets.indexOf(Math.max(...buckets));
-                const poc = minP + maxIdx * step + step / 2;
-                let cumSum = 0;
-                const totalVol = buckets.reduce((a, b) => a + b, 0);
-                let vahIdx = maxIdx;
-                for (let i = maxIdx; i < levels; i++) {
-                    cumSum += buckets[i];
-                    if (cumSum >= totalVol * 0.68) { vahIdx = i; break; }
+                if (!candles || candles.length < 10) return { poc: 0, vah: 0, val: 0 };
+                try {
+                    const prices = candles.map(c => (c.high + c.low) / 2);
+                    const volumes = candles.map(c => c.volume || 1);
+                    const minP = Math.min(...prices);
+                    const maxP = Math.max(...prices);
+                    const step = (maxP - minP) / levels;
+                    if (step === 0) return { poc: prices[0], vah: prices[0], val: prices[0] };
+                    const buckets = Array(levels).fill(0);
+                    prices.forEach((p, i) => {
+                        const idx = Math.min(Math.floor((p - minP) / step), levels - 1);
+                        buckets[idx] += volumes[i];
+                    });
+                    const maxIdx = buckets.indexOf(Math.max(...buckets));
+                    const poc = minP + maxIdx * step + step / 2;
+                    let cumSum = 0;
+                    const totalVol = buckets.reduce((a, b) => a + b, 0);
+                    let vahIdx = maxIdx;
+                    for (let i = maxIdx; i < levels; i++) {
+                        cumSum += buckets[i];
+                        if (cumSum >= totalVol * 0.68) { vahIdx = i; break; }
+                    }
+                    let valIdx = maxIdx;
+                    cumSum = 0;
+                    for (let i = maxIdx; i >= 0; i--) {
+                        cumSum += buckets[i];
+                        if (cumSum >= totalVol * 0.68) { valIdx = i; break; }
+                    }
+                    return {
+                        poc: Utils.round(poc, 2),
+                        vah: Utils.round(minP + vahIdx * step + step / 2, 2),
+                        val: Utils.round(minP + valIdx * step + step / 2, 2)
+                    };
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب Volume Profile:', e.message);
+                    return { poc: 0, vah: 0, val: 0 };
                 }
-                let valIdx = maxIdx;
-                cumSum = 0;
-                for (let i = maxIdx; i >= 0; i--) {
-                    cumSum += buckets[i];
-                    if (cumSum >= totalVol * 0.68) { valIdx = i; break; }
-                }
-                return {
-                    poc: Utils.round(poc, 2),
-                    vah: Utils.round(minP + vahIdx * step + step / 2, 2),
-                    val: Utils.round(minP + valIdx * step + step / 2, 2)
-                };
             }
 
-            // --- CVD (Cumulative Volume Delta) ---
             static calculateCVD(candles) {
-                if (candles.length < 2) return 0;
-                let cvd = 0;
-                for (let i = 1; i < candles.length; i++) {
-                    const c = candles[i];
-                    const delta = c.close > c.open ? (c.volume || 1) : -(c.volume || 1);
-                    cvd += delta;
+                if (!candles || candles.length < 2) return 0;
+                try {
+                    let cvd = 0;
+                    for (let i = 1; i < candles.length; i++) {
+                        const c = candles[i];
+                        const delta = c.close > c.open ? (c.volume || 1) : -(c.volume || 1);
+                        cvd += delta;
+                    }
+                    return cvd;
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب CVD:', e.message);
+                    return 0;
                 }
-                return cvd;
             }
 
-            // --- Trend Detection ---
             static detectTrend(candles, period = 20) {
-                if (candles.length < period) return 'neutral';
-                const close = candles.map(c => c.close);
-                const sma = close.slice(-period).reduce((a, b) => a + b, 0) / period;
-                const last = close[close.length - 1];
-                if (last > sma * 1.02) return 'bullish';
-                if (last < sma * 0.98) return 'bearish';
-                return 'neutral';
+                if (!candles || candles.length < period) return 'neutral';
+                try {
+                    const close = candles.map(c => c.close);
+                    const sma = close.slice(-period).reduce((a, b) => a + b, 0) / period;
+                    const last = close[close.length - 1];
+                    if (last > sma * 1.02) return 'bullish';
+                    if (last < sma * 0.98) return 'bearish';
+                    return 'neutral';
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في حساب Trend:', e.message);
+                    return 'neutral';
+                }
             }
 
-            // --- Complete SMC Analysis ---
             static fullAnalysis(candles) {
-                if (candles.length < 30) {
+                if (!candles || candles.length < 30) {
                     return {
                         trend: 'neutral',
                         adx: 0,
@@ -1343,176 +1429,202 @@
                         liquiditySweeps: { sweeps: [] },
                         fvg: { bullish: [], bearish: [] },
                         structure: { bos: [], choch: [] },
-                        confidence: 0
+                        confidence: 0,
+                        conditions: {}
                     };
                 }
-                const adxData = this.calculateADX(candles);
-                const atr = this.calculateATR(candles);
-                const vp = this.calculateVolumeProfile(candles);
-                const cvd = this.calculateCVD(candles);
-                const ob = this.findOrderBlocks(candles);
-                const ls = this.findLiquiditySweeps(candles);
-                const fvg = this.findFVG(candles);
-                const structure = this.findMarketStructure(candles);
-                const trend = this.detectTrend(candles);
+                try {
+                    const adxData = this.calculateADX(candles);
+                    const atr = this.calculateATR(candles);
+                    const vp = this.calculateVolumeProfile(candles);
+                    const cvd = this.calculateCVD(candles);
+                    const ob = this.findOrderBlocks(candles);
+                    const ls = this.findLiquiditySweeps(candles);
+                    const fvg = this.findFVG(candles);
+                    const structure = this.findMarketStructure(candles);
+                    const trend = this.detectTrend(candles);
 
-                const conditions = {
-                    adx: adxData.adx >= CONFIG.adxThreshold,
-                    trend: trend !== 'neutral',
-                    ob: ob.bullish.length > 0 || ob.bearish.length > 0,
-                    ls: ls.sweeps.length > 0,
-                    fvg: fvg.bullish.length > 0 || fvg.bearish.length > 0,
-                    structure: structure.bos.length > 0 || structure.choch.length > 0,
-                    vp: vp.poc > 0
-                };
-                const confidence = Utils.calculateConfidence(conditions);
+                    const conditions = {
+                        adx: adxData.adx >= CONFIG.adxThreshold,
+                        trend: trend !== 'neutral',
+                        ob: ob.bullish.length > 0 || ob.bearish.length > 0,
+                        ls: ls.sweeps.length > 0,
+                        fvg: fvg.bullish.length > 0 || fvg.bearish.length > 0,
+                        structure: structure.bos.length > 0 || structure.choch.length > 0,
+                        vp: vp.poc > 0
+                    };
+                    const confidence = Utils.calculateConfidence(conditions);
 
-                return {
-                    trend,
-                    adx: adxData.adx,
-                    plusDI: adxData.plusDI,
-                    minusDI: adxData.minusDI,
-                    atr,
-                    poc: vp.poc,
-                    vah: vp.vah,
-                    val: vp.val,
-                    cvd,
-                    orderBlocks: ob,
-                    liquiditySweeps: ls,
-                    fvg,
-                    structure,
-                    confidence,
-                    conditions
-                };
+                    return {
+                        trend,
+                        adx: adxData.adx,
+                        plusDI: adxData.plusDI,
+                        minusDI: adxData.minusDI,
+                        atr,
+                        poc: vp.poc,
+                        vah: vp.vah,
+                        val: vp.val,
+                        cvd,
+                        orderBlocks: ob,
+                        liquiditySweeps: ls,
+                        fvg,
+                        structure,
+                        confidence,
+                        conditions
+                    };
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في التحليل الكامل:', e.message);
+                    return {
+                        trend: 'neutral',
+                        adx: 0,
+                        atr: 0,
+                        poc: 0,
+                        vah: 0,
+                        val: 0,
+                        cvd: 0,
+                        orderBlocks: { bullish: [], bearish: [] },
+                        liquiditySweeps: { sweeps: [] },
+                        fvg: { bullish: [], bearish: [] },
+                        structure: { bos: [], choch: [] },
+                        confidence: 0,
+                        conditions: {}
+                    };
+                }
             }
         }
 
+        console.log('✅ [SMCIndicators] تم تحميل المؤشرات');
+
         // ============================================================
-        // DECISION ENGINE
+        // 6. DECISION ENGINE
         // ============================================================
         class DecisionEngine {
             static evaluate(candles, analysis, symbol) {
-                if (candles.length < 30 || analysis.adx < CONFIG.adxThreshold) {
+                if (!candles || candles.length < 30 || !analysis || analysis.adx < CONFIG.adxThreshold) {
                     return { signal: null, reasons: [], confidence: 0 };
                 }
+                try {
+                    const last = candles[candles.length - 1];
+                    const price = last.close;
+                    const adx = analysis.adx;
+                    const atr = analysis.atr;
+                    const poc = analysis.poc;
+                    const ob = analysis.orderBlocks;
+                    const sweeps = analysis.liquiditySweeps.sweeps;
+                    const fvg = analysis.fvg;
+                    const structure = analysis.structure;
+                    const cvd = analysis.cvd;
 
-                const last = candles[candles.length - 1];
-                const price = last.close;
-                const adx = analysis.adx;
-                const atr = analysis.atr;
-                const poc = analysis.poc;
-                const vah = analysis.vah;
-                const val = analysis.val;
-                const cvd = analysis.cvd;
-                const ob = analysis.orderBlocks;
-                const sweeps = analysis.liquiditySweeps.sweeps;
-                const fvg = analysis.fvg;
-                const structure = analysis.structure;
-
-                // --- BUY CONDITIONS (ALL MUST BE TRUE) ---
-                const buyConditions = {
-                    adxOk: adx >= CONFIG.adxThreshold,
-                    bullishOB: ob.bullish.some(b => price >= b.price * 0.998 && price <= b.high * 1.005),
-                    sweep: sweeps.some(s => s.type === 'bullish' && Math.abs(price - s.price) < atr * 0.5),
-                    fvg: fvg.bullish.some(f => price >= f.bottom && price <= f.top),
-                    structure: structure.bos.some(b => b.type === 'bullish') || structure.choch.some(c => c.type === 'bullish'),
-                    atPOC: Math.abs(price - poc) < atr * 0.4,
-                    cvdBullish: cvd > 0,
-                    trendBullish: analysis.trend === 'bullish'
-                };
-
-                // --- SELL CONDITIONS (ALL MUST BE TRUE) ---
-                const sellConditions = {
-                    adxOk: adx >= CONFIG.adxThreshold,
-                    bearishOB: ob.bearish.some(b => price <= b.price * 1.002 && price >= b.low * 0.995),
-                    sweep: sweeps.some(s => s.type === 'bearish' && Math.abs(price - s.price) < atr * 0.5),
-                    fvg: fvg.bearish.some(f => price >= f.bottom && price <= f.top),
-                    structure: structure.bos.some(b => b.type === 'bearish') || structure.choch.some(c => c.type === 'bearish'),
-                    atPOC: Math.abs(price - poc) < atr * 0.4,
-                    cvdBearish: cvd < 0,
-                    trendBearish: analysis.trend === 'bearish'
-                };
-
-                const buyAll = Object.values(buyConditions).every(v => v === true);
-                const sellAll = Object.values(sellConditions).every(v => v === true);
-
-                let signal = null;
-                let reasons = [];
-
-                if (buyAll) {
-                    const entry = price;
-                    const sl = entry - atr * CONFIG.atrStopLossMultiplier;
-                    const tp1 = entry + atr * 1.5;
-                    const tp2 = entry + atr * 2.5;
-                    const tp3 = entry + atr * 4.0;
-                    const rr1 = (tp1 - entry) / (entry - sl);
-                    const rr2 = (tp2 - entry) / (entry - sl);
-                    const rr3 = (tp3 - entry) / (entry - sl);
-                    signal = {
-                        type: 'BUY',
-                        symbol: symbol || CONFIG.symbol,
-                        entry: Utils.round(entry, 2),
-                        stopLoss: Utils.round(sl, 2),
-                        takeProfit1: Utils.round(tp1, 2),
-                        takeProfit2: Utils.round(tp2, 2),
-                        takeProfit3: Utils.round(tp3, 2),
-                        rr1: Utils.round(rr1, 2),
-                        rr2: Utils.round(rr2, 2),
-                        rr3: Utils.round(rr3, 2),
-                        confidence: Utils.calculateConfidence(buyConditions),
-                        atr: Utils.round(atr, 2),
-                        adx: Utils.round(adx, 1),
-                        timestamp: Date.now()
+                    const buyConditions = {
+                        adxOk: adx >= CONFIG.adxThreshold,
+                        bullishOB: ob.bullish.some(b => price >= b.price * 0.998 && price <= b.high * 1.005),
+                        sweep: sweeps.some(s => s.type === 'bullish' && Math.abs(price - s.price) < atr * 0.5),
+                        fvg: fvg.bullish.some(f => price >= f.bottom && price <= f.top),
+                        structure: structure.bos.some(b => b.type === 'bullish') || structure.choch.some(c => c.type ===
+                            'bullish'),
+                        atPOC: Math.abs(price - poc) < atr * 0.4,
+                        cvdBullish: cvd > 0,
+                        trendBullish: analysis.trend === 'bullish'
                     };
-                    reasons = Object.keys(buyConditions).filter(k => buyConditions[k]);
-                } else if (sellAll) {
-                    const entry = price;
-                    const sl = entry + atr * CONFIG.atrStopLossMultiplier;
-                    const tp1 = entry - atr * 1.5;
-                    const tp2 = entry - atr * 2.5;
-                    const tp3 = entry - atr * 4.0;
-                    const rr1 = (entry - tp1) / (sl - entry);
-                    const rr2 = (entry - tp2) / (sl - entry);
-                    const rr3 = (entry - tp3) / (sl - entry);
-                    signal = {
-                        type: 'SELL',
-                        symbol: symbol || CONFIG.symbol,
-                        entry: Utils.round(entry, 2),
-                        stopLoss: Utils.round(sl, 2),
-                        takeProfit1: Utils.round(tp1, 2),
-                        takeProfit2: Utils.round(tp2, 2),
-                        takeProfit3: Utils.round(tp3, 2),
-                        rr1: Utils.round(rr1, 2),
-                        rr2: Utils.round(rr2, 2),
-                        rr3: Utils.round(rr3, 2),
-                        confidence: Utils.calculateConfidence(sellConditions),
-                        atr: Utils.round(atr, 2),
-                        adx: Utils.round(adx, 1),
-                        timestamp: Date.now()
+
+                    const sellConditions = {
+                        adxOk: adx >= CONFIG.adxThreshold,
+                        bearishOB: ob.bearish.some(b => price <= b.price * 1.002 && price >= b.low * 0.995),
+                        sweep: sweeps.some(s => s.type === 'bearish' && Math.abs(price - s.price) < atr * 0.5),
+                        fvg: fvg.bearish.some(f => price >= f.bottom && price <= f.top),
+                        structure: structure.bos.some(b => b.type === 'bearish') || structure.choch.some(c => c.type ===
+                            'bearish'),
+                        atPOC: Math.abs(price - poc) < atr * 0.4,
+                        cvdBearish: cvd < 0,
+                        trendBearish: analysis.trend === 'bearish'
                     };
-                    reasons = Object.keys(sellConditions).filter(k => sellConditions[k]);
+
+                    const buyAll = Object.values(buyConditions).every(v => v === true);
+                    const sellAll = Object.values(sellConditions).every(v => v === true);
+
+                    let signal = null;
+                    let reasons = [];
+
+                    if (buyAll) {
+                        const entry = price;
+                        const sl = entry - atr * CONFIG.atrStopLossMultiplier;
+                        const tp1 = entry + atr * 1.5;
+                        const tp2 = entry + atr * 2.5;
+                        const tp3 = entry + atr * 4.0;
+                        const rr1 = (tp1 - entry) / (entry - sl);
+                        const rr2 = (tp2 - entry) / (entry - sl);
+                        const rr3 = (tp3 - entry) / (entry - sl);
+                        signal = {
+                            type: 'BUY',
+                            symbol: symbol || CONFIG.symbol,
+                            entry: Utils.round(entry, 2),
+                            stopLoss: Utils.round(sl, 2),
+                            takeProfit1: Utils.round(tp1, 2),
+                            takeProfit2: Utils.round(tp2, 2),
+                            takeProfit3: Utils.round(tp3, 2),
+                            rr1: Utils.round(rr1, 2),
+                            rr2: Utils.round(rr2, 2),
+                            rr3: Utils.round(rr3, 2),
+                            confidence: Utils.calculateConfidence(buyConditions),
+                            atr: Utils.round(atr, 2),
+                            adx: Utils.round(adx, 1),
+                            timestamp: Date.now()
+                        };
+                        reasons = Object.keys(buyConditions).filter(k => buyConditions[k]);
+                    } else if (sellAll) {
+                        const entry = price;
+                        const sl = entry + atr * CONFIG.atrStopLossMultiplier;
+                        const tp1 = entry - atr * 1.5;
+                        const tp2 = entry - atr * 2.5;
+                        const tp3 = entry - atr * 4.0;
+                        const rr1 = (entry - tp1) / (sl - entry);
+                        const rr2 = (entry - tp2) / (sl - entry);
+                        const rr3 = (entry - tp3) / (sl - entry);
+                        signal = {
+                            type: 'SELL',
+                            symbol: symbol || CONFIG.symbol,
+                            entry: Utils.round(entry, 2),
+                            stopLoss: Utils.round(sl, 2),
+                            takeProfit1: Utils.round(tp1, 2),
+                            takeProfit2: Utils.round(tp2, 2),
+                            takeProfit3: Utils.round(tp3, 2),
+                            rr1: Utils.round(rr1, 2),
+                            rr2: Utils.round(rr2, 2),
+                            rr3: Utils.round(rr3, 2),
+                            confidence: Utils.calculateConfidence(sellConditions),
+                            atr: Utils.round(atr, 2),
+                            adx: Utils.round(adx, 1),
+                            timestamp: Date.now()
+                        };
+                        reasons = Object.keys(sellConditions).filter(k => sellConditions[k]);
+                    }
+
+                    return { signal, reasons, confidence: signal ? signal.confidence : 0 };
+                } catch (e) {
+                    Utils.log('error', '❌ خطأ في محرك القرار:', e.message);
+                    return { signal: null, reasons: [], confidence: 0 };
                 }
-
-                return { signal, reasons, confidence: signal ? signal.confidence : 0 };
             }
         }
 
+        console.log('✅ [DecisionEngine] تم تحميل محرك القرار');
+
         // ============================================================
-        // NOTIFICATION MANAGER
+        // 7. NOTIFICATION MANAGER (مبسط مع معالجة الأخطاء)
         // ============================================================
         class NotificationManager {
             static async sendTelegram(message, token, chatId) {
                 if (!token || !chatId) return false;
                 try {
                     const url = `https://api.telegram.org/bot${token}/sendMessage`;
-                    await fetch(url, {
+                    const resp = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' })
                     });
-                    return true;
+                    return resp.ok;
                 } catch (e) {
-                    console.warn('Telegram failed:', e);
+                    Utils.log('warn', '⚠️ فشل إرسال Telegram:', e.message);
                     return false;
                 }
             }
@@ -1520,14 +1632,14 @@
             static async sendDiscord(message, webhookUrl) {
                 if (!webhookUrl) return false;
                 try {
-                    await fetch(webhookUrl, {
+                    const resp = await fetch(webhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ content: message })
                     });
-                    return true;
+                    return resp.ok;
                 } catch (e) {
-                    console.warn('Discord failed:', e);
+                    Utils.log('warn', '⚠️ فشل إرسال Discord:', e.message);
                     return false;
                 }
             }
@@ -1551,201 +1663,247 @@
                     await this.sendDiscord(msg.replace(/<[^>]*>/g, ''), CONFIG.discordWebhook);
                 }
                 if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`${signal.type} Signal - ${signal.symbol}`, {
-                        body: `Entry: ${signal.entry}`,
-                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📊</text></svg>'
-                    });
+                    try {
+                        new Notification(`${signal.type} Signal - ${signal.symbol}`, {
+                            body: `Entry: ${signal.entry}`,
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📊</text></svg>'
+                        });
+                    } catch (e) {}
                 }
             }
         }
 
+        console.log('✅ [NotificationManager] تم تحميل مدير الإشعارات');
+
         // ============================================================
-        // CHART MANAGER (TradingView Lightweight Charts)
+        // 8. CHART MANAGER (مع معالجة الأخطاء)
         // ============================================================
         class ChartManager {
             constructor(containerId) {
                 this.container = document.getElementById(containerId);
-                this.chart = LightweightCharts.createChart(this.container, {
-                    width: this.container.clientWidth,
-                    height: this.container.clientHeight,
-                    layout: {
-                        background: { color: '#0d1117' },
-                        textColor: '#c9d1d9',
-                    },
-                    grid: {
-                        vertLines: { color: '#21262d' },
-                        horzLines: { color: '#21262d' },
-                    },
-                    crosshair: {
-                        mode: LightweightCharts.CrosshairMode.Normal,
-                    },
-                    rightPriceScale: {
-                        borderColor: '#30363d',
-                    },
-                    timeScale: {
-                        borderColor: '#30363d',
-                        timeVisible: true,
-                    },
-                });
-                this.candleSeries = this.chart.addCandlestickSeries({
-                    upColor: '#2ea043',
-                    downColor: '#f85149',
-                    borderUpColor: '#2ea043',
-                    borderDownColor: '#f85149',
-                    wickUpColor: '#2ea043',
-                    wickDownColor: '#f85149',
-                });
-                this.indicatorSeries = [];
-                this.resizeObserver = new ResizeObserver(() => this.resize());
-                this.resizeObserver.observe(this.container);
-                window.addEventListener('resize', () => this.resize());
+                if (!this.container) {
+                    Utils.log('error', '❌ حاوية الرسم البياني غير موجودة:', containerId);
+                    return;
+                }
+                try {
+                    if (typeof LightweightCharts === 'undefined') {
+                        throw new Error('LightweightCharts library not loaded');
+                    }
+                    this.chart = LightweightCharts.createChart(this.container, {
+                        width: this.container.clientWidth || 400,
+                        height: this.container.clientHeight || 300,
+                        layout: {
+                            background: { color: '#0d1117' },
+                            textColor: '#c9d1d9',
+                        },
+                        grid: {
+                            vertLines: { color: '#21262d' },
+                            horzLines: { color: '#21262d' },
+                        },
+                        crosshair: {
+                            mode: LightweightCharts.CrosshairMode.Normal,
+                        },
+                        rightPriceScale: {
+                            borderColor: '#30363d',
+                        },
+                        timeScale: {
+                            borderColor: '#30363d',
+                            timeVisible: true,
+                        },
+                    });
+                    this.candleSeries = this.chart.addCandlestickSeries({
+                        upColor: '#2ea043',
+                        downColor: '#f85149',
+                        borderUpColor: '#2ea043',
+                        borderDownColor: '#f85149',
+                        wickUpColor: '#2ea043',
+                        wickDownColor: '#f85149',
+                    });
+                    this.indicatorSeries = [];
+                    Utils.log('info', '✅ تم إنشاء الرسم البياني بنجاح');
+                    this.resizeObserver = new ResizeObserver(() => this.resize());
+                    this.resizeObserver.observe(this.container);
+                    window.addEventListener('resize', () => this.resize());
+                    DataStore.chartInitialized = true;
+                } catch (e) {
+                    Utils.log('error', '❌ فشل إنشاء الرسم البياني:', e.message);
+                    this.container.innerHTML =
+                        `<div style="color:#f85149;padding:20px;text-align:center;">❌ خطأ في تحميل الرسم البياني: ${e.message}</div>`;
+                }
             }
 
             resize() {
-                this.chart.resize(this.container.clientWidth, this.container.clientHeight);
+                try {
+                    if (this.chart && this.container) {
+                        this.chart.resize(this.container.clientWidth, this.container.clientHeight);
+                    }
+                } catch (e) {
+                    Utils.log('warn', '⚠️ فشل تغيير حجم الرسم البياني:', e.message);
+                }
             }
 
             setData(candles) {
-                if (!candles || candles.length === 0) return;
-                const data = candles.map(c => ({
-                    time: Math.floor(c.timestamp / 1000),
-                    open: c.open,
-                    high: c.high,
-                    low: c.low,
-                    close: c.close
-                }));
-                this.candleSeries.setData(data);
+                if (!this.candleSeries || !candles || candles.length === 0) return;
+                try {
+                    const data = candles.map(c => ({
+                        time: Math.floor(c.timestamp / 1000),
+                        open: c.open,
+                        high: c.high,
+                        low: c.low,
+                        close: c.close
+                    }));
+                    this.candleSeries.setData(data);
+                    Utils.log('info', `✅ تم تحديث الرسم البياني بـ ${data.length} شمعة`);
+                } catch (e) {
+                    Utils.log('error', '❌ فشل تحديث الرسم البياني:', e.message);
+                }
             }
 
             clearIndicators() {
-                this.indicatorSeries.forEach(s => this.chart.removeSeries(s));
-                this.indicatorSeries = [];
+                try {
+                    this.indicatorSeries.forEach(s => {
+                        try { this.chart.removeSeries(s); } catch (e) {}
+                    });
+                    this.indicatorSeries = [];
+                } catch (e) {
+                    Utils.log('warn', '⚠️ فشل مسح المؤشرات:', e.message);
+                }
             }
 
-            addIndicator(data, color = '#58a6ff', type = 'line') {
-                const series = this.chart.addLineSeries({
-                    color: color,
-                    lineWidth: 1,
-                    crosshairMarkerVisible: true,
-                });
-                series.setData(data.map(d => ({
-                    time: Math.floor(d.time / 1000) || d.time,
-                    value: d.value
-                })));
-                this.indicatorSeries.push(series);
-            }
-
-            drawOrderBlocks(blocks, type = 'bullish') {
-                const color = type === 'bullish' ? '#2ea043' : '#f85149';
-                const fillColor = type === 'bullish' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)';
-                blocks.forEach(b => {
-                    const time = Math.floor(b.timestamp / 1000) || b.time;
-                    // Draw rectangle using series markers
-                    // Simplified: use price line
+            addIndicator(data, color = '#58a6ff') {
+                try {
+                    if (!data || data.length === 0) return;
                     const series = this.chart.addLineSeries({
                         color: color,
                         lineWidth: 1,
-                        lineStyle: LightweightCharts.LineStyle.Dashed,
+                        crosshairMarkerVisible: true,
                     });
-                    series.setData([{ time: time, value: b.price }]);
+                    series.setData(data.map(d => ({
+                        time: Math.floor((d.time || d.timestamp || Date.now()) / 1000),
+                        value: d.value
+                    })));
                     this.indicatorSeries.push(series);
-                });
+                } catch (e) {
+                    Utils.log('warn', '⚠️ فشل إضافة مؤشر:', e.message);
+                }
             }
         }
 
+        console.log('✅ [ChartManager] تم تحميل مدير الرسم البياني');
+
         // ============================================================
-        // UI MANAGER
+        // 9. UI MANAGER (مع معالجة الأخطاء)
         // ============================================================
         class UIManager {
-            static init() {
-                // Load symbols
-                this.loadSymbols();
-                
-                // Timeframe buttons
-                document.querySelectorAll('.tf-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        CONFIG.timeframe = btn.dataset.tf;
-                        this.onTimeframeChange(CONFIG.timeframe);
+            static async init() {
+                Utils.log('info', '🚀 بدء تهيئة واجهة المستخدم...');
+                try {
+                    // Load symbols
+                    await this.loadSymbols();
+
+                    // Timeframe buttons
+                    document.querySelectorAll('.tf-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            CONFIG.timeframe = btn.dataset.tf;
+                            this.onTimeframeChange(CONFIG.timeframe);
+                        });
                     });
-                });
 
-                // Settings
-                document.getElementById('settings-btn').addEventListener('click', () => {
-                    document.getElementById('settings-modal').classList.add('active');
-                });
-                document.querySelector('.close-modal').addEventListener('click', () => {
-                    document.getElementById('settings-modal').classList.remove('active');
-                });
-                document.getElementById('save-settings').addEventListener('click', () => {
-                    CONFIG.riskPercent = parseFloat(document.getElementById('risk-input').value) || 2;
-                    CONFIG.atrStopLossMultiplier = parseFloat(document.getElementById('atr-sl-multiplier').value) || 1.5;
-                    CONFIG.telegramToken = document.getElementById('telegram-token').value;
-                    CONFIG.telegramChat = document.getElementById('telegram-chat').value;
-                    CONFIG.discordWebhook = document.getElementById('discord-webhook').value;
-                    document.getElementById('settings-modal').classList.remove('active');
-                    localStorage.setItem('smc_config', JSON.stringify(CONFIG));
-                });
-
-                // Clear signals
-                document.getElementById('clear-signals').addEventListener('click', () => {
-                    DataStore.signals = [];
-                    this.renderSignals();
-                });
-
-                // Symbol search
-                document.getElementById('symbol-search').addEventListener('input', (e) => {
-                    const q = e.target.value.toLowerCase();
-                    document.querySelectorAll('.symbol-item').forEach(el => {
-                        el.style.display = el.dataset.symbol.toLowerCase().includes(q) ? 'flex' : 'none';
+                    // Settings
+                    document.getElementById('settings-btn').addEventListener('click', () => {
+                        document.getElementById('settings-modal').classList.add('active');
                     });
-                });
+                    document.querySelector('.close-modal').addEventListener('click', () => {
+                        document.getElementById('settings-modal').classList.remove('active');
+                    });
+                    document.getElementById('save-settings').addEventListener('click', () => {
+                        CONFIG.riskPercent = parseFloat(document.getElementById('risk-input').value) || 2;
+                        CONFIG.atrStopLossMultiplier = parseFloat(document.getElementById('atr-sl-multiplier')
+                            .value) || 1.5;
+                        CONFIG.telegramToken = document.getElementById('telegram-token').value;
+                        CONFIG.telegramChat = document.getElementById('telegram-chat').value;
+                        CONFIG.discordWebhook = document.getElementById('discord-webhook').value;
+                        document.getElementById('settings-modal').classList.remove('active');
+                        try { localStorage.setItem('smc_config', JSON.stringify(CONFIG)); } catch (e) {}
+                        Utils.log('info', '✅ تم حفظ الإعدادات');
+                    });
 
-                // Load saved config
-                const saved = localStorage.getItem('smc_config');
-                if (saved) {
+                    // Clear signals
+                    document.getElementById('clear-signals').addEventListener('click', () => {
+                        DataStore.signals = [];
+                        this.renderSignals();
+                    });
+
+                    // Symbol search
+                    document.getElementById('symbol-search').addEventListener('input', (e) => {
+                        const q = e.target.value.toLowerCase();
+                        document.querySelectorAll('.symbol-item').forEach(el => {
+                            el.style.display = el.dataset.symbol.toLowerCase().includes(q) ? 'flex' :
+                            'none';
+                        });
+                    });
+
+                    // Load saved config
                     try {
-                        const cfg = JSON.parse(saved);
-                        Object.assign(CONFIG, cfg);
-                        document.getElementById('risk-input').value = CONFIG.riskPercent;
-                        document.getElementById('atr-sl-multiplier').value = CONFIG.atrStopLossMultiplier;
-                        document.getElementById('telegram-token').value = CONFIG.telegramToken || '';
-                        document.getElementById('telegram-chat').value = CONFIG.telegramChat || '';
-                        document.getElementById('discord-webhook').value = CONFIG.discordWebhook || '';
-                    } catch (e) {}
+                        const saved = localStorage.getItem('smc_config');
+                        if (saved) {
+                            const cfg = JSON.parse(saved);
+                            Object.assign(CONFIG, cfg);
+                            document.getElementById('risk-input').value = CONFIG.riskPercent;
+                            document.getElementById('atr-sl-multiplier').value = CONFIG.atrStopLossMultiplier;
+                            document.getElementById('telegram-token').value = CONFIG.telegramToken || '';
+                            document.getElementById('telegram-chat').value = CONFIG.telegramChat || '';
+                            document.getElementById('discord-webhook').value = CONFIG.discordWebhook || '';
+                        }
+                    } catch (e) { Utils.log('warn', '⚠️ فشل تحميل الإعدادات المحفوظة:', e.message); }
+
+                    // Request notification permission
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission();
+                    }
+
+                    // Start with initial symbol
+                    document.getElementById('status-text').textContent = 'جاري التحميل...';
+                    await this.onSymbolChange(CONFIG.symbol);
+
+                    // Start scanning
+                    this.startScanning();
+
+                    DataStore.isReady = true;
+                    Utils.log('info', '✅ تم تهيئة واجهة المستخدم بنجاح');
+                } catch (e) {
+                    Utils.log('error', '❌ فشل تهيئة واجهة المستخدم:', e.message);
+                    document.getElementById('status-text').textContent = 'خطأ: ' + e.message;
                 }
-
-                // Request notification permission
-                if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission();
-                }
-
-                // Start with initial symbol
-                this.onSymbolChange(CONFIG.symbol);
-
-                // Start scanning
-                this.startScanning();
             }
 
             static async loadSymbols() {
-                const symbols = await BinanceAPI.getSymbols();
-                DataStore.symbols = symbols;
-                const listEl = document.getElementById('symbol-list');
-                listEl.innerHTML = '';
-                symbols.forEach(sym => {
-                    const div = document.createElement('div');
-                    div.className = 'symbol-item' + (sym === CONFIG.symbol ? ' active' : '');
-                    div.innerHTML = `<span class="sym">${sym}</span><span class="price">--</span>`;
-                    div.dataset.symbol = sym;
-                    div.addEventListener('click', () => {
-                        document.querySelectorAll('.symbol-item').forEach(el => el.classList.remove('active'));
-                        div.classList.add('active');
-                        CONFIG.symbol = sym;
-                        this.onSymbolChange(sym);
+                try {
+                    const symbols = await BinanceAPI.getSymbols();
+                    DataStore.symbols = symbols;
+                    const listEl = document.getElementById('symbol-list');
+                    if (!listEl) return;
+                    listEl.innerHTML = '';
+                    symbols.forEach(sym => {
+                        const div = document.createElement('div');
+                        div.className = 'symbol-item' + (sym === CONFIG.symbol ? ' active' : '');
+                        div.innerHTML = `<span class="sym">${sym}</span><span class="price">--</span>`;
+                        div.dataset.symbol = sym;
+                        div.addEventListener('click', () => {
+                            document.querySelectorAll('.symbol-item').forEach(el => el.classList.remove(
+                            'active'));
+                            div.classList.add('active');
+                            CONFIG.symbol = sym;
+                            this.onSymbolChange(sym);
+                        });
+                        listEl.appendChild(div);
                     });
-                    listEl.appendChild(div);
-                });
+                    Utils.log('info', `✅ تم عرض ${symbols.length} عملة`);
+                } catch (e) {
+                    Utils.log('error', '❌ فشل تحميل قائمة العملات:', e.message);
+                }
             }
 
             static async onSymbolChange(symbol) {
@@ -1753,14 +1911,21 @@
                 document.getElementById('status-text').textContent = 'جاري التحميل...';
                 document.getElementById('signal-badge').className = 'signal-badge wait';
                 document.getElementById('signal-badge').textContent = '⏳ تحميل...';
-                
-                const candles = await BinanceAPI.getCandles(symbol, CONFIG.timeframe);
-                if (candles.length > 0) {
-                    DataStore.candles[symbol] = candles;
-                    this.updateChart(symbol);
-                    this.updateAnalysis(symbol);
-                    document.getElementById('status-text').textContent = 'متصل';
-                } else {
+
+                try {
+                    const candles = await BinanceAPI.getCandles(symbol, CONFIG.timeframe);
+                    if (candles && candles.length > 0) {
+                        DataStore.candles[symbol] = candles;
+                        this.updateChart(symbol);
+                        this.updateAnalysis(symbol);
+                        document.getElementById('status-text').textContent = 'متصل';
+                        Utils.log('info', `✅ تم تحديث بيانات ${symbol}`);
+                    } else {
+                        document.getElementById('status-text').textContent = 'لا توجد بيانات';
+                        Utils.log('warn', `⚠️ لا توجد بيانات لـ ${symbol}`);
+                    }
+                } catch (e) {
+                    Utils.log('error', `❌ فشل تحميل بيانات ${symbol}:`, e.message);
                     document.getElementById('status-text').textContent = 'فشل التحميل';
                 }
             }
@@ -1773,85 +1938,117 @@
             static updateChart(symbol) {
                 const candles = DataStore.candles[symbol];
                 if (!candles || candles.length === 0) return;
-                
-                if (!window.chartManager) {
-                    window.chartManager = new ChartManager('chart');
-                }
-                window.chartManager.setData(candles);
-                
-                // Draw indicators based on toggles
-                const showOB = document.getElementById('show-ob').checked;
-                const showLQ = document.getElementById('show-lq').checked;
-                const showFVG = document.getElementById('show-fvg').checked;
-                const showVP = document.getElementById('show-vp').checked;
-                const showStruct = document.getElementById('show-struct').checked;
-                
-                window.chartManager.clearIndicators();
-                
-                const analysis = SMCIndicators.fullAnalysis(candles);
-                DataStore.analysis = analysis;
-                
-                if (showOB) {
-                    analysis.orderBlocks.bullish.forEach(b => {
-                        window.chartManager.addIndicator([{ time: b.index, value: b.price }], '#2ea043');
-                    });
-                    analysis.orderBlocks.bearish.forEach(b => {
-                        window.chartManager.addIndicator([{ time: b.index, value: b.price }], '#f85149');
-                    });
-                }
-                if (showVP && analysis.poc > 0) {
-                    window.chartManager.addIndicator([{ time: candles[candles.length - 1].timestamp, value: analysis.poc }], '#f0883e');
+
+                try {
+                    if (!window.chartManager) {
+                        window.chartManager = new ChartManager('chart');
+                    }
+                    window.chartManager.setData(candles);
+
+                    // Draw indicators based on toggles
+                    const showOB = document.getElementById('show-ob').checked;
+                    const showLQ = document.getElementById('show-lq').checked;
+                    const showFVG = document.getElementById('show-fvg').checked;
+                    const showVP = document.getElementById('show-vp').checked;
+                    const showStruct = document.getElementById('show-struct').checked;
+
+                    if (window.chartManager) {
+                        window.chartManager.clearIndicators();
+                    }
+
+                    const analysis = SMCIndicators.fullAnalysis(candles);
+                    DataStore.analysis = analysis;
+
+                    if (showOB && window.chartManager) {
+                        analysis.orderBlocks.bullish.forEach(b => {
+                            window.chartManager.addIndicator([{ time: b.index, value: b.price }],
+                            '#2ea043');
+                        });
+                        analysis.orderBlocks.bearish.forEach(b => {
+                            window.chartManager.addIndicator([{ time: b.index, value: b.price }],
+                            '#f85149');
+                        });
+                    }
+                    if (showVP && analysis.poc > 0 && window.chartManager) {
+                        window.chartManager.addIndicator([{ time: candles[candles.length - 1].timestamp,
+                            value: analysis.poc }], '#f0883e');
+                    }
+                } catch (e) {
+                    Utils.log('error', '❌ فشل تحديث الرسم البياني:', e.message);
                 }
             }
 
             static updateAnalysis(symbol) {
                 const candles = DataStore.candles[symbol];
                 if (!candles || candles.length === 0) return;
-                
-                const analysis = SMCIndicators.fullAnalysis(candles);
-                DataStore.analysis = analysis;
-                
-                // Update panel
-                const trendEl = document.getElementById('trend');
-                trendEl.textContent = analysis.trend === 'bullish' ? '📈 صاعد' :
-                    analysis.trend === 'bearish' ? '📉 هابط' : '➖ محايد';
-                trendEl.className = 'value ' + analysis.trend;
-                
-                document.getElementById('adx-value').textContent = analysis.adx.toFixed(1);
-                document.getElementById('adx-value').style.color = analysis.adx >= CONFIG.adxThreshold ? '#2ea043' : '#8b949e';
-                document.getElementById('atr-value').textContent = Utils.formatPrice(analysis.atr);
-                document.getElementById('poc-value').textContent = Utils.formatPrice(analysis.poc);
-                document.getElementById('vah-value').textContent = Utils.formatPrice(analysis.vah);
-                document.getElementById('val-value').textContent = Utils.formatPrice(analysis.val);
-                document.getElementById('cvd-value').textContent = analysis.cvd.toFixed(0);
-                document.getElementById('cvd-value').style.color = analysis.cvd > 0 ? '#2ea043' : '#f85149';
-                document.getElementById('confidence').textContent = analysis.confidence + '%';
-                
-                // Update price
-                const last = candles[candles.length - 1];
-                document.getElementById('signal-price').textContent = '$' + Utils.formatPrice(last.close);
-                
-                // Run decision engine
-                const decision = DecisionEngine.evaluate(candles, analysis, symbol);
-                if (decision.signal) {
-                    // Check for duplicate
-                    const lastSignal = DataStore.signals[DataStore.signals.length - 1];
-                    if (lastSignal && lastSignal.type === decision.signal.type &&
-                        Math.abs(lastSignal.entry - decision.signal.entry) < decision.signal.atr * 0.3) {
-                        return;
+
+                try {
+                    const analysis = SMCIndicators.fullAnalysis(candles);
+                    DataStore.analysis = analysis;
+
+                    const trendEl = document.getElementById('trend');
+                    if (trendEl) {
+                        trendEl.textContent = analysis.trend === 'bullish' ? '📈 صاعد' :
+                            analysis.trend === 'bearish' ? '📉 هابط' : '➖ محايد';
+                        trendEl.className = 'value ' + analysis.trend;
                     }
-                    DataStore.signals.push(decision.signal);
-                    if (DataStore.signals.length > CONFIG.maxSignals) {
-                        DataStore.signals.splice(0, DataStore.signals.length - CONFIG.maxSignals);
+
+                    const adxEl = document.getElementById('adx-value');
+                    if (adxEl) {
+                        adxEl.textContent = analysis.adx.toFixed(1);
+                        adxEl.style.color = analysis.adx >= CONFIG.adxThreshold ? '#2ea043' : '#8b949e';
                     }
-                    this.renderSignals();
-                    this.showSignal(decision.signal, decision.reasons);
-                    NotificationManager.notify(decision.signal);
+
+                    const atrEl = document.getElementById('atr-value');
+                    if (atrEl) atrEl.textContent = Utils.formatPrice(analysis.atr);
+
+                    const pocEl = document.getElementById('poc-value');
+                    if (pocEl) pocEl.textContent = Utils.formatPrice(analysis.poc);
+
+                    const vahEl = document.getElementById('vah-value');
+                    if (vahEl) vahEl.textContent = Utils.formatPrice(analysis.vah);
+
+                    const valEl = document.getElementById('val-value');
+                    if (valEl) valEl.textContent = Utils.formatPrice(analysis.val);
+
+                    const cvdEl = document.getElementById('cvd-value');
+                    if (cvdEl) {
+                        cvdEl.textContent = analysis.cvd.toFixed(0);
+                        cvdEl.style.color = analysis.cvd > 0 ? '#2ea043' : '#f85149';
+                    }
+
+                    const confEl = document.getElementById('confidence');
+                    if (confEl) confEl.textContent = analysis.confidence + '%';
+
+                    const last = candles[candles.length - 1];
+                    const priceEl = document.getElementById('signal-price');
+                    if (priceEl) priceEl.textContent = '$' + Utils.formatPrice(last.close);
+
+                    // Run decision engine
+                    const decision = DecisionEngine.evaluate(candles, analysis, symbol);
+                    if (decision.signal) {
+                        const lastSignal = DataStore.signals[DataStore.signals.length - 1];
+                        if (lastSignal && lastSignal.type === decision.signal.type &&
+                            Math.abs(lastSignal.entry - decision.signal.entry) < decision.signal.atr * 0.3) {
+                            return;
+                        }
+                        DataStore.signals.push(decision.signal);
+                        if (DataStore.signals.length > CONFIG.maxSignals) {
+                            DataStore.signals.splice(0, DataStore.signals.length - CONFIG.maxSignals);
+                        }
+                        this.renderSignals();
+                        this.showSignal(decision.signal, decision.reasons);
+                        NotificationManager.notify(decision.signal);
+                        Utils.log('info', `📊 إشارة جديدة: ${decision.signal.type} على ${symbol}`);
+                    }
+                } catch (e) {
+                    Utils.log('error', '❌ فشل تحديث التحليل:', e.message);
                 }
             }
 
             static renderSignals() {
                 const container = document.getElementById('signal-content');
+                if (!container) return;
                 if (DataStore.signals.length === 0) {
                     container.innerHTML = '<div class="signal-empty">⏳ في انتظار إشارة...</div>';
                     return;
@@ -1881,24 +2078,25 @@
             static showSignal(signal, reasons) {
                 const badge = document.getElementById('signal-badge');
                 const cls = signal.type === 'BUY' ? 'buy' : 'sell';
-                badge.className = 'signal-badge ' + cls;
-                badge.textContent = signal.type === 'BUY' ? '📈 شراء' : '📉 بيع';
-                document.getElementById('signal-time').textContent = Utils.timestamp();
-                
-                console.log(`✅ إشارة ${signal.type} على ${signal.symbol}`, signal);
-                console.log('📋 الأسباب:', reasons);
+                if (badge) {
+                    badge.className = 'signal-badge ' + cls;
+                    badge.textContent = signal.type === 'BUY' ? '📈 شراء' : '📉 بيع';
+                }
+                const timeEl = document.getElementById('signal-time');
+                if (timeEl) timeEl.textContent = Utils.timestamp();
             }
 
             static updateHPSignals(signals) {
                 const container = document.getElementById('hp-content');
                 const countEl = document.getElementById('hp-count');
-                
+                if (!container || !countEl) return;
+
                 if (!signals || signals.length === 0) {
                     container.innerHTML = '<div class="hp-empty">⏳ No High Probability Signal</div>';
                     countEl.textContent = '0';
                     return;
                 }
-                
+
                 countEl.textContent = signals.length;
                 let html = '';
                 signals.slice(0, CONFIG.maxHPSignals).forEach(s => {
@@ -1914,6 +2112,7 @@
             }
 
             static startScanning() {
+                Utils.log('info', '🔄 بدء المسح الدوري للعملات...');
                 // Scan all symbols every 30 seconds
                 setInterval(async () => {
                     if (DataStore.isScanning) return;
@@ -1921,26 +2120,30 @@
                     try {
                         const hpSignals = [];
                         for (const sym of DataStore.symbols) {
-                            const candles = await BinanceAPI.getCandles(sym, CONFIG.timeframe, 200);
-                            if (candles.length < 30) continue;
-                            DataStore.candles[sym] = candles;
-                            const analysis = SMCIndicators.fullAnalysis(candles);
-                            const decision = DecisionEngine.evaluate(candles, analysis, sym);
-                            if (decision.signal) {
-                                hpSignals.push(decision.signal);
+                            try {
+                                const candles = await BinanceAPI.getCandles(sym, CONFIG.timeframe, 200);
+                                if (!candles || candles.length < 30) continue;
+                                DataStore.candles[sym] = candles;
+                                const analysis = SMCIndicators.fullAnalysis(candles);
+                                const decision = DecisionEngine.evaluate(candles, analysis, sym);
+                                if (decision.signal) {
+                                    hpSignals.push(decision.signal);
+                                }
+                                await Utils.sleep(50);
+                            } catch (e) {
+                                Utils.log('warn', `⚠️ فشل مسح ${sym}:`, e.message);
                             }
-                            // Small delay to avoid rate limiting
-                            await Utils.sleep(100);
                         }
                         DataStore.hpSignals = hpSignals;
-                        UIManager.updateHPSignals(hpSignals);
-                        
+                        this.updateHPSignals(hpSignals);
+
                         // Update current symbol analysis
                         if (CONFIG.symbol) {
-                            UIManager.updateAnalysis(CONFIG.symbol);
+                            this.updateAnalysis(CONFIG.symbol);
                         }
+                        Utils.log('info', `✅ اكتمل المسح: ${hpSignals.length} إشارة عالية الاحتمال`);
                     } catch (e) {
-                        console.warn('Scan error:', e);
+                        Utils.log('error', '❌ خطأ في المسح الدوري:', e.message);
                     }
                     DataStore.isScanning = false;
                     DataStore.lastScan = Date.now();
@@ -1948,33 +2151,46 @@
             }
         }
 
+        console.log('✅ [UIManager] تم تحميل مدير واجهة المستخدم');
+
         // ============================================================
-        // SERVICE WORKER (PWA) - Inline
+        // 10. SERVICE WORKER (PWA) - مبسط
         // ============================================================
         if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('install', e => { e.waitUntil(self.skipWaiting()); });
-                self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
-                self.addEventListener('fetch', e => {
-                    e.respondWith(fetch(e.request).catch(() => new Response('Offline', {status:503})));
-                });
-            `;
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            navigator.serviceWorker.register(swUrl).catch(() => {});
+            try {
+                const swCode = `
+                    self.addEventListener('install', e => { e.waitUntil(self.skipWaiting()); });
+                    self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(fetch(e.request).catch(() => new Response('Offline', {status:503})));
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
+                Utils.log('info', '✅ تم تسجيل Service Worker');
+            } catch (e) {
+                Utils.log('warn', '⚠️ فشل تسجيل Service Worker:', e.message);
+            }
         }
 
         // ============================================================
-        // INITIALIZATION
+        // 11. INITIALIZATION
         // ============================================================
         document.addEventListener('DOMContentLoaded', () => {
-            UIManager.init();
-            console.log('📊 Crypto SMC AI Pro v3.0 - Signal Engine Only');
-            console.log('🔍 Scanning for high probability signals...');
+            Utils.log('info', '🚀 بدء تشغيل Crypto SMC AI Pro v3.0.1');
+            try {
+                UIManager.init();
+                console.log('📊 Crypto SMC AI Pro v3.0.1 - Signal Engine Only');
+                console.log('🔍 Scanning for high probability signals...');
+            } catch (e) {
+                Utils.log('error', '❌ فشل تشغيل التطبيق:', e.message);
+                document.getElementById('status-text').textContent = 'خطأ: ' + e.message;
+            }
         });
 
         // ============================================================
-        // GLOBAL EXPOSURE
+        // 12. GLOBAL EXPOSURE (للتصحيح)
         // ============================================================
         window.UIManager = UIManager;
         window.CONFIG = CONFIG;
@@ -1982,6 +2198,10 @@
         window.SMCIndicators = SMCIndicators;
         window.DecisionEngine = DecisionEngine;
         window.BinanceAPI = BinanceAPI;
+        window.Utils = Utils;
+        window.ChartManager = ChartManager;
+
+        console.log('✅ [Global] تم تصدير جميع الوحدات للوصول العام');
     </script>
 </body>
-                                                                                  </html>
+    </html>
