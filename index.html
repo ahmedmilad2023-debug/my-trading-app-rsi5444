@@ -3,26 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto SMC AI Pro - نظام تداول ذكي</title>
+    <title>Crypto SMC AI Pro - محرك إشارات SMC</title>
     <meta name="theme-color" content="#0d1117">
-    <meta name="description" content="نظام تداول احترافي يعتمد على Smart Money Concepts مع تحليل السيولة والحجم">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    <meta name="description" content="محرك احترافي لإشارات التداول يعتمد على Smart Money Concepts">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    
     <style>
-        /* ===== CSS STYLES ===== */
-        /* ===== RESET & BASE ===== */
+        /* ============================================================
+           CSS - STYLES
+           ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: #0d1117;
             color: #c9d1d9;
-            overflow: hidden;
             height: 100vh;
-            width: 100vw;
+            overflow: hidden;
         }
+        
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -37,209 +43,263 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #58a6ff;
         }
-        button {
-            cursor: pointer;
-            border: none;
-            outline: none;
-            font-family: inherit;
-        }
-        input {
-            font-family: inherit;
-            outline: none;
-        }
-
+        
         /* ===== HEADER ===== */
         .main-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 20px;
+            padding: 8px 20px;
             background: #161b22;
             border-bottom: 1px solid #30363d;
-            height: 60px;
+            height: 56px;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 1000;
         }
+        
         .logo-container {
             display: flex;
             align-items: center;
             gap: 12px;
         }
+        
         .logo-text {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             background: linear-gradient(135deg, #58a6ff, #f0883e);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
         }
+        
         .version {
-            font-size: 11px;
+            font-size: 10px;
             color: #8b949e;
             background: #21262d;
             padding: 2px 8px;
             border-radius: 10px;
         }
+        
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
-        .account-info {
+        
+        .status-indicator {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 14px;
-        }
-        .account-info span {
-            color: #c9d1d9;
-        }
-        .risk-badge {
-            background: #21262d;
-            padding: 2px 10px;
-            border-radius: 12px;
-            color: #f0883e;
+            gap: 6px;
             font-size: 12px;
-            border: 1px solid #f0883e33;
+            color: #8b949e;
         }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ea043;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
         .btn-icon {
             background: #21262d;
             color: #c9d1d9;
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 16px;
             transition: all 0.2s;
             border: 1px solid #30363d;
         }
+        
         .btn-icon:hover {
             background: #30363d;
             border-color: #58a6ff;
         }
-
+        
         /* ===== MAIN CONTAINER ===== */
         .main-container {
             display: flex;
-            height: calc(100vh - 60px);
-            margin-top: 60px;
+            height: calc(100vh - 56px);
+            margin-top: 56px;
+            gap: 0;
         }
-
+        
         /* ===== SIDEBAR ===== */
         .sidebar {
-            width: 260px;
+            width: 280px;
             background: #161b22;
             border-right: 1px solid #30363d;
-            padding: 15px;
+            padding: 12px;
             overflow-y: auto;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
+        
+        .sidebar-section {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #21262d;
+        }
+        
+        .sidebar-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #8b949e;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .symbol-search {
+            position: relative;
+        }
+        
         .symbol-search input {
             width: 100%;
-            padding: 10px 12px;
+            padding: 8px 12px;
             background: #0d1117;
             border: 1px solid #30363d;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #c9d1d9;
-            font-size: 14px;
+            font-size: 13px;
             transition: border 0.2s;
         }
+        
         .symbol-search input:focus {
             border-color: #58a6ff;
         }
+        
         .symbol-list {
-            margin-top: 10px;
-            max-height: 300px;
+            max-height: 180px;
             overflow-y: auto;
+            margin-top: 6px;
         }
+        
         .symbol-item {
-            padding: 8px 10px;
-            border-radius: 6px;
+            padding: 5px 8px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.15s;
             display: flex;
             justify-content: space-between;
-            font-size: 13px;
-            border-bottom: 1px solid #21262d;
+            font-size: 12px;
+            border-bottom: 1px solid #161b22;
         }
+        
         .symbol-item:hover {
             background: #21262d;
         }
+        
         .symbol-item.active {
-            background: #21262d;
-            border-left: 3px solid #58a6ff;
+            background: #1f6feb22;
+            border-left: 2px solid #58a6ff;
         }
+        
         .symbol-item .sym {
             color: #c9d1d9;
             font-weight: 600;
         }
+        
         .symbol-item .price {
             color: #8b949e;
-            font-size: 12px;
         }
-
+        
+        .symbol-item .signal-badge-mini {
+            font-size: 9px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: #21262d;
+        }
+        
+        .symbol-item .signal-badge-mini.buy {
+            background: #2ea04333;
+            color: #2ea043;
+            border: 1px solid #2ea04344;
+        }
+        
+        .symbol-item .signal-badge-mini.sell {
+            background: #f8514933;
+            color: #f85149;
+            border: 1px solid #f8514944;
+        }
+        
         .timeframe-selector {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
+            gap: 4px;
         }
+        
         .tf-btn {
-            padding: 6px 0;
+            padding: 4px 0;
             background: #0d1117;
             color: #8b949e;
             border: 1px solid #30363d;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.2s;
+            font-weight: 500;
         }
+        
         .tf-btn:hover {
             background: #21262d;
         }
+        
         .tf-btn.active {
             background: #1f6feb;
             color: #fff;
             border-color: #1f6feb;
         }
-
+        
         .indicator-toggle {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            font-size: 13px;
-            padding-top: 10px;
-            border-top: 1px solid #21262d;
+            gap: 4px;
+            font-size: 12px;
         }
+        
         .indicator-toggle label {
             display: flex;
             align-items: center;
             gap: 8px;
             cursor: pointer;
             color: #8b949e;
+            padding: 2px 0;
         }
+        
         .indicator-toggle input[type="checkbox"] {
             accent-color: #58a6ff;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             cursor: pointer;
         }
-
+        
         /* ===== CONTENT ===== */
         .content {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 10px;
-            gap: 10px;
+            padding: 8px;
+            gap: 8px;
             overflow: hidden;
+            background: #0d1117;
         }
-
+        
         /* ===== CHART ===== */
         .chart-container {
             flex: 1;
@@ -248,182 +308,365 @@
             border: 1px solid #30363d;
             border-radius: 8px;
             overflow: hidden;
-            min-height: 300px;
+            min-height: 250px;
         }
+        
         #chart {
             width: 100%;
             height: 100%;
         }
+        
         .chart-overlay {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 8px;
+            right: 8px;
             z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
         }
+        
         .signal-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 13px;
             font-weight: 700;
             background: #21262d;
             color: #8b949e;
             border: 1px solid #30363d;
             transition: all 0.3s;
+            pointer-events: none;
         }
+        
         .signal-badge.buy {
             background: #2ea04333;
             border-color: #2ea043;
             color: #2ea043;
+            box-shadow: 0 0 20px #2ea04322;
         }
+        
         .signal-badge.sell {
             background: #f8514933;
             border-color: #f85149;
             color: #f85149;
+            box-shadow: 0 0 20px #f8514922;
         }
+        
         .signal-badge.wait {
             background: #21262d;
             border-color: #30363d;
             color: #8b949e;
         }
-
+        
+        .signal-price {
+            font-size: 11px;
+            color: #8b949e;
+            background: #161b22cc;
+            padding: 2px 10px;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+        }
+        
         /* ===== ANALYSIS PANEL ===== */
         .analysis-panel {
             background: #161b22;
             border: 1px solid #30363d;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 8px 12px;
             flex-shrink: 0;
+            max-height: 110px;
+            overflow-y: auto;
         }
+        
         .panel-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 4px 12px;
         }
+        
         .panel-item {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
         }
+        
         .panel-item .label {
-            font-size: 10px;
+            font-size: 9px;
             color: #8b949e;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
+        
         .panel-item .value {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             color: #c9d1d9;
-            margin-top: 2px;
         }
+        
         .panel-item .value.confidence {
             color: #f0883e;
         }
+        
         .panel-item .value.bullish {
             color: #2ea043;
         }
+        
         .panel-item .value.bearish {
             color: #f85149;
         }
-
+        
+        .panel-item .value.neutral {
+            color: #8b949e;
+        }
+        
         /* ===== SIGNAL PANEL ===== */
         .signal-panel {
             background: #161b22;
             border: 1px solid #30363d;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 8px 12px;
             flex-shrink: 0;
-            max-height: 200px;
+            max-height: 160px;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
+        
         .signal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            flex-shrink: 0;
         }
+        
         .signal-header h3 {
-            font-size: 15px;
+            font-size: 13px;
             color: #c9d1d9;
+            font-weight: 600;
         }
+        
         .signal-header #signal-time {
-            font-size: 12px;
+            font-size: 11px;
             color: #8b949e;
         }
+        
         .signal-content {
             flex: 1;
             overflow-y: auto;
         }
+        
         .signal-empty {
             color: #8b949e;
-            font-size: 13px;
+            font-size: 12px;
             text-align: center;
-            padding: 15px 0;
+            padding: 20px 0;
         }
+        
         .signal-item {
-            padding: 8px 12px;
-            margin-bottom: 6px;
+            padding: 6px 10px;
+            margin-bottom: 4px;
             border-radius: 6px;
-            border-left: 4px solid;
+            border-left: 3px solid;
             background: #0d1117;
-            font-size: 13px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .signal-item.buy {
+            border-color: #2ea043;
+        }
+        
+        .signal-item.sell {
+            border-color: #f85149;
+        }
+        
+        .signal-item .signal-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .signal-item.buy {
-            border-color: #2ea043;
-        }
-        .signal-item.sell {
-            border-color: #f85149;
-        }
+        
         .signal-item .signal-type {
             font-weight: 700;
+            font-size: 13px;
         }
+        
         .signal-item .signal-type.buy {
             color: #2ea043;
         }
+        
         .signal-item .signal-type.sell {
             color: #f85149;
         }
+        
+        .signal-item .signal-conf {
+            font-size: 11px;
+            color: #f0883e;
+        }
+        
         .signal-item .signal-details {
             color: #8b949e;
-            font-size: 12px;
+            font-size: 11px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
+        
+        .signal-item .signal-reasons {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 2px;
+        }
+        
+        .signal-item .reason-tag {
+            font-size: 9px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: #21262d;
+            color: #8b949e;
+            border: 1px solid #30363d;
+        }
+        
+        .signal-item .reason-tag.met {
+            background: #2ea04322;
+            color: #2ea043;
+            border-color: #2ea04344;
+        }
+        
         .signal-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 8px;
-            padding-top: 8px;
+            gap: 8px;
+            margin-top: 6px;
+            padding-top: 6px;
             border-top: 1px solid #21262d;
+            flex-shrink: 0;
         }
+        
         .btn-primary {
-            padding: 6px 16px;
+            padding: 5px 14px;
             background: #1f6feb;
             color: #fff;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             transition: background 0.2s;
         }
+        
         .btn-primary:hover {
             background: #388bfd;
         }
+        
         .btn-secondary {
-            padding: 6px 16px;
+            padding: 5px 14px;
             background: #21262d;
             color: #c9d1d9;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             border: 1px solid #30363d;
             transition: background 0.2s;
         }
+        
         .btn-secondary:hover {
             background: #30363d;
         }
-
+        
+        /* ===== HIGH PROBABILITY SIGNALS ===== */
+        .hp-signals-panel {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 6px 10px;
+            flex-shrink: 0;
+            max-height: 130px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .hp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            margin-bottom: 4px;
+        }
+        
+        .hp-header h3 {
+            font-size: 12px;
+            color: #f0883e;
+            font-weight: 600;
+        }
+        
+        .hp-header .hp-count {
+            font-size: 10px;
+            color: #8b949e;
+        }
+        
+        .hp-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .hp-item {
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            background: #0d1117;
+            border-left: 2px solid;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        .hp-item:hover {
+            background: #21262d;
+        }
+        
+        .hp-item.buy {
+            border-color: #2ea043;
+        }
+        
+        .hp-item.sell {
+            border-color: #f85149;
+        }
+        
+        .hp-item .hp-symbol {
+            font-weight: 600;
+            color: #c9d1d9;
+        }
+        
+        .hp-item .hp-type {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .hp-item .hp-type.buy {
+            color: #2ea043;
+        }
+        
+        .hp-item .hp-type.sell {
+            color: #f85149;
+        }
+        
+        .hp-item .hp-conf {
+            font-size: 10px;
+            color: #f0883e;
+        }
+        
+        .hp-empty {
+            color: #8b949e;
+            font-size: 12px;
+            text-align: center;
+            padding: 15px 0;
+        }
+        
         /* ===== MODAL ===== */
         .modal {
             display: none;
@@ -432,144 +675,151 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.75);
             z-index: 2000;
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(4px);
         }
+        
         .modal.active {
             display: flex;
         }
+        
         .modal-content {
             background: #161b22;
             border: 1px solid #30363d;
             border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
+            max-width: 480px;
+            width: 92%;
             max-height: 90vh;
             overflow-y: auto;
             padding: 20px;
         }
+        
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
+        
         .modal-header h2 {
-            font-size: 20px;
+            font-size: 18px;
             color: #c9d1d9;
         }
+        
         .close-modal {
             background: none;
             color: #8b949e;
-            font-size: 24px;
+            font-size: 22px;
             transition: color 0.2s;
         }
+        
         .close-modal:hover {
             color: #f85149;
         }
+        
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
+        
         .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             color: #8b949e;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
+        
         .form-group input {
             width: 100%;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: #0d1117;
             border: 1px solid #30363d;
             border-radius: 6px;
             color: #c9d1d9;
-            font-size: 14px;
+            font-size: 13px;
         }
+        
         .form-group input:focus {
             border-color: #58a6ff;
         }
+        
         .modal-footer {
-            margin-top: 20px;
+            margin-top: 16px;
             display: flex;
             justify-content: flex-end;
         }
-
+        
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .sidebar {
-                width: 200px;
-                padding: 10px;
+                width: 220px;
+                padding: 8px;
             }
             .panel-grid {
-                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
             }
             .logo-text {
-                font-size: 16px;
-            }
-            .account-info {
-                font-size: 12px;
-                gap: 8px;
-            }
-            .risk-badge {
-                display: none;
+                font-size: 14px;
             }
         }
+        
         @media (max-width: 600px) {
-            .sidebar {
-                width: 160px;
-                font-size: 12px;
-            }
-            .timeframe-selector {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .main-container {
-                flex-direction: column;
-            }
             .sidebar {
                 width: 100%;
                 height: auto;
-                max-height: 200px;
+                max-height: 160px;
                 border-right: none;
                 border-bottom: 1px solid #30363d;
                 flex-direction: row;
                 flex-wrap: wrap;
-                padding: 8px;
-                gap: 8px;
+                padding: 6px;
+                gap: 6px;
+            }
+            .sidebar-section {
+                padding: 6px 8px;
             }
             .symbol-search {
                 width: 100%;
             }
             .symbol-list {
-                max-height: 80px;
+                max-height: 60px;
             }
             .content {
-                padding: 5px;
+                padding: 4px;
             }
             .panel-grid {
                 grid-template-columns: repeat(4, 1fr);
+            }
+            .analysis-panel {
+                max-height: 80px;
+            }
+            .signal-panel {
+                max-height: 140px;
+            }
+            .hp-signals-panel {
+                max-height: 100px;
             }
         }
     </style>
 </head>
 <body>
-
-    <!-- ===== HTML STRUCTURE ===== -->
+    <!-- ============================================================
+    HTML STRUCTURE
+    ============================================================ -->
     <div id="app">
         <!-- Header -->
         <header class="main-header">
             <div class="logo-container">
-                <span class="logo-text">🚀 Crypto SMC AI Pro</span>
-                <span class="version">v2.0.0</span>
+                <span class="logo-text">📊 Crypto SMC AI Pro</span>
+                <span class="version">v3.0.0</span>
             </div>
             <div class="header-controls">
-                <div class="account-info">
-                    <span>💰 الرصيد: <span id="balance-display">$10,000</span></span>
-                    <span class="risk-badge">خطر: 2%</span>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="status-text">متصل</span>
                 </div>
-                <button id="theme-toggle" class="btn-icon">🌙</button>
                 <button id="settings-btn" class="btn-icon">⚙️</button>
             </div>
         </header>
@@ -578,24 +828,35 @@
         <div class="main-container">
             <!-- Sidebar -->
             <aside class="sidebar">
-                <div class="symbol-search">
-                    <input type="text" id="symbol-search" placeholder="🔍 بحث عن عملة...">
-                    <div id="symbol-list" class="symbol-list"></div>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">🔍 البحث عن عملة</div>
+                    <div class="symbol-search">
+                        <input type="text" id="symbol-search" placeholder="مثال: BTCUSDT">
+                        <div id="symbol-list" class="symbol-list"></div>
+                    </div>
                 </div>
-                <div class="timeframe-selector">
-                    <button class="tf-btn active" data-tf="1m">1m</button>
-                    <button class="tf-btn" data-tf="5m">5m</button>
-                    <button class="tf-btn" data-tf="15m">15m</button>
-                    <button class="tf-btn" data-tf="1h">1h</button>
-                    <button class="tf-btn" data-tf="4h">4h</button>
-                    <button class="tf-btn" data-tf="1d">1d</button>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">⏱️ الفريم الزمني</div>
+                    <div class="timeframe-selector">
+                        <button class="tf-btn active" data-tf="1m">1m</button>
+                        <button class="tf-btn" data-tf="5m">5m</button>
+                        <button class="tf-btn" data-tf="15m">15m</button>
+                        <button class="tf-btn" data-tf="1h">1h</button>
+                        <button class="tf-btn" data-tf="4h">4h</button>
+                        <button class="tf-btn" data-tf="1d">1d</button>
+                    </div>
                 </div>
-                <div class="indicator-toggle">
-                    <label><input type="checkbox" checked id="show-ob"> Order Blocks</label>
-                    <label><input type="checkbox" checked id="show-lq"> Liquidity Zones</label>
-                    <label><input type="checkbox" checked id="show-vp"> Volume Profile</label>
-                    <label><input type="checkbox" checked id="show-cvd"> CVD</label>
-                    <label><input type="checkbox" checked id="show-adx"> ADX</label>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">📈 المؤشرات</div>
+                    <div class="indicator-toggle">
+                        <label><input type="checkbox" checked id="show-ob"> Order Blocks</label>
+                        <label><input type="checkbox" checked id="show-lq"> Liquidity Zones</label>
+                        <label><input type="checkbox" checked id="show-fvg"> FVG</label>
+                        <label><input type="checkbox" checked id="show-vp"> Volume Profile</label>
+                        <label><input type="checkbox" checked id="show-struct"> Market Structure</label>
+                    </div>
                 </div>
             </aside>
 
@@ -603,37 +864,48 @@
             <main class="content">
                 <!-- Chart -->
                 <div class="chart-container">
-                    <div id="chart" class="chart"></div>
+                    <div id="chart"></div>
                     <div class="chart-overlay">
                         <div class="signal-badge wait" id="signal-badge">⏳ انتظار</div>
+                        <div class="signal-price" id="signal-price">--</div>
                     </div>
                 </div>
 
                 <!-- Analysis Panel -->
                 <div class="analysis-panel">
                     <div class="panel-grid">
-                        <div class="panel-item"><span class="label">الاتجاه العام</span><span class="value" id="trend">-</span></div>
+                        <div class="panel-item"><span class="label">الاتجاه</span><span class="value neutral" id="trend">-</span></div>
                         <div class="panel-item"><span class="label">ADX</span><span class="value" id="adx-value">-</span></div>
                         <div class="panel-item"><span class="label">ATR</span><span class="value" id="atr-value">-</span></div>
                         <div class="panel-item"><span class="label">POC</span><span class="value" id="poc-value">-</span></div>
                         <div class="panel-item"><span class="label">VAH</span><span class="value" id="vah-value">-</span></div>
                         <div class="panel-item"><span class="label">VAL</span><span class="value" id="val-value">-</span></div>
                         <div class="panel-item"><span class="label">CVD</span><span class="value" id="cvd-value">-</span></div>
-                        <div class="panel-item"><span class="label">ثقة الإشارة</span><span class="value confidence" id="confidence">0%</span></div>
+                        <div class="panel-item"><span class="label">الثقة</span><span class="value confidence" id="confidence">0%</span></div>
+                    </div>
+                </div>
+
+                <!-- High Probability Signals -->
+                <div class="hp-signals-panel">
+                    <div class="hp-header">
+                        <h3>🔥 High Probability Signals</h3>
+                        <span class="hp-count" id="hp-count">0</span>
+                    </div>
+                    <div class="hp-content" id="hp-content">
+                        <div class="hp-empty">⏳ جاري البحث عن فرص...</div>
                     </div>
                 </div>
 
                 <!-- Signal Panel -->
                 <div class="signal-panel">
                     <div class="signal-header">
-                        <h3>📊 إشارة التداول</h3>
+                        <h3>📊 آخر إشارة</h3>
                         <span id="signal-time">--:--:--</span>
                     </div>
                     <div class="signal-content" id="signal-content">
                         <div class="signal-empty">⏳ في انتظار إشارة...</div>
                     </div>
                     <div class="signal-actions">
-                        <button id="backtest-btn" class="btn-primary">📈 تشغيل باك تست</button>
                         <button id="clear-signals" class="btn-secondary">🗑️ مسح الإشارات</button>
                     </div>
                 </div>
@@ -645,58 +917,68 @@
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>⚙️ إعدادات التداول</h2>
+                <h2>⚙️ الإعدادات</h2>
                 <button class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group"><label>رأس المال ($)</label><input type="number" id="capital-input" value="10000" min="100"></div>
-                <div class="form-group"><label>نسبة المخاطرة (%)</label><input type="number" id="risk-input" value="2" min="0.1" step="0.1"></div>
-                <div class="form-group"><label>الرافعة المالية</label><input type="number" id="leverage-input" value="10" min="1"></div>
-                <div class="form-group"><label>Telegram Bot Token</label><input type="text" id="telegram-token" placeholder="أدخل توكن البوت"></div>
-                <div class="form-group"><label>Telegram Chat ID</label><input type="text" id="telegram-chat" placeholder="أدخل معرف الدردشة"></div>
-                <div class="form-group"><label>Discord Webhook URL</label><input type="text" id="discord-webhook" placeholder="أدخل رابط الويب هوك"></div>
+                <div class="form-group">
+                    <label>نسبة المخاطرة (%)</label>
+                    <input type="number" id="risk-input" value="2" min="0.1" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>ATR مضاعف وقف الخسارة</label>
+                    <input type="number" id="atr-sl-multiplier" value="1.5" min="0.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Telegram Bot Token</label>
+                    <input type="text" id="telegram-token" placeholder="أدخل توكن البوت">
+                </div>
+                <div class="form-group">
+                    <label>Telegram Chat ID</label>
+                    <input type="text" id="telegram-chat" placeholder="أدخل معرف الدردشة">
+                </div>
+                <div class="form-group">
+                    <label>Discord Webhook URL</label>
+                    <input type="text" id="discord-webhook" placeholder="أدخل رابط الويب هوك">
+                </div>
             </div>
-            <div class="modal-footer"><button id="save-settings" class="btn-primary">💾 حفظ الإعدادات</button></div>
+            <div class="modal-footer">
+                <button id="save-settings" class="btn-primary">💾 حفظ</button>
+            </div>
         </div>
     </div>
 
-    <!-- ===== JAVASCRIPT ===== -->
+    <!-- ============================================================
+    JAVASCRIPT - FULL APPLICATION
+    ============================================================ -->
     <script>
         // ============================================================
-        //  Crypto SMC AI Pro - Full Application (Single File)
-        //  All code is self-contained, ES6+ with modules simulation
-        // ============================================================
-
-        // ============================================================
-        // 1. CONFIGURATION
+        // CONFIGURATION
         // ============================================================
         const CONFIG = {
-            capital: 10000,
             riskPercent: 2,
-            leverage: 10,
+            atrStopLossMultiplier: 1.5,
+            adxThreshold: 25,
+            maxSignals: 30,
+            maxHPSignals: 15,
             telegramToken: '',
             telegramChat: '',
             discordWebhook: '',
             symbol: 'BTCUSDT',
             timeframe: '1m',
-            adxThreshold: 25,
-            maxSignals: 50,
-            backtestDays: 30,
+            scanInterval: 30000, // 30 seconds
+            maxCandles: 500,
+            apiBase: 'https://api.binance.com'
         };
 
         // ============================================================
-        // 2. DATA STORE
+        // DATA STORE
         // ============================================================
         const DataStore = {
-            symbols: [
-                'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-                'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'DOTUSDT', 'MATICUSDT',
-                'LINKUSDT', 'UNIUSDT', 'ATOMUSDT', 'ETCUSDT', 'LTCUSDT',
-                'BCHUSDT', 'NEARUSDT', 'APTUSDT', 'ARBUSDT', 'OPUSDT'
-            ],
-            prices: {},
-            candles: [],
+            symbols: [],
+            candles: {},
             signals: [],
+            hpSignals: [],
             analysis: {
                 trend: 'neutral',
                 adx: 0,
@@ -706,40 +988,96 @@
                 val: 0,
                 cvd: 0,
                 confidence: 0,
-                orderBlocks: [],
-                liquidityZones: []
+                orderBlocks: { bullish: [], bearish: [] },
+                liquiditySweeps: { sweeps: [] },
+                fvg: { bullish: [], bearish: [] },
+                structure: { bos: [], choch: [] }
             },
-            settings: CONFIG,
-            ws: null,
-            isConnected: false,
-            backtestResults: null,
+            isScanning: false,
+            lastScan: 0
         };
 
         // ============================================================
-        // 3. UTILITY FUNCTIONS
+        // UTILITY FUNCTIONS
         // ============================================================
         const Utils = {
-            random(min, max) { return Math.random() * (max - min) + min; },
-            randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; },
-            clamp(val, min, max) { return Math.min(Math.max(val, min), max); },
-            round(val, decimals) { return Number(val.toFixed(decimals)); },
+            round(val, decimals = 2) { return Number(val.toFixed(decimals)); },
             timestamp() { return new Date().toLocaleTimeString('ar-EG'); },
-            dateStr() { return new Date().toISOString(); },
-            sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
-            generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); },
-            formatPrice(p) { return p >= 100 ? p.toFixed(2) : p >= 1 ? p.toFixed(4) : p.toFixed(6); },
+            formatPrice(p) {
+                if (!p) return '--';
+                return p >= 100 ? p.toFixed(2) : p >= 1 ? p.toFixed(4) : p.toFixed(6);
+            },
             formatPercent(p) { return (p * 100).toFixed(1) + '%'; },
+            sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
             calculateConfidence(conditions) {
                 const total = Object.keys(conditions).length;
                 const met = Object.values(conditions).filter(v => v === true).length;
                 return Math.round((met / total) * 100);
+            },
+            isBullishCandle(c) { return c.close > c.open; },
+            isBearishCandle(c) { return c.close < c.open; },
+            highest(arr, key) { return Math.max(...arr.map(c => c[key])); },
+            lowest(arr, key) { return Math.min(...arr.map(c => c[key])); },
+            sma(arr, period) {
+                if (arr.length < period) return arr.reduce((a, b) => a + b, 0) / arr.length;
+                return arr.slice(-period).reduce((a, b) => a + b, 0) / period;
             }
         };
 
         // ============================================================
-        // 4. INDICATORS (SMC + Technical)
+        // BINANCE API - DATA FETCHER
         // ============================================================
-        class Indicators {
+        class BinanceAPI {
+            static async getSymbols() {
+                try {
+                    const resp = await fetch(`${CONFIG.apiBase}/api/v3/exchangeInfo`);
+                    const data = await resp.json();
+                    return data.symbols
+                        .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING')
+                        .map(s => s.symbol)
+                        .slice(0, 30);
+                } catch (e) {
+                    console.warn('Failed to fetch symbols:', e);
+                    return ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT'];
+                }
+            }
+
+            static async getCandles(symbol, timeframe, limit = CONFIG.maxCandles) {
+                const intervals = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
+                const interval = intervals[timeframe] || '1m';
+                try {
+                    const url = `${CONFIG.apiBase}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    return data.map(k => ({
+                        timestamp: k[0],
+                        open: parseFloat(k[1]),
+                        high: parseFloat(k[2]),
+                        low: parseFloat(k[3]),
+                        close: parseFloat(k[4]),
+                        volume: parseFloat(k[5])
+                    }));
+                } catch (e) {
+                    console.warn(`Failed to fetch candles for ${symbol}:`, e);
+                    return [];
+                }
+            }
+
+            static async getCurrentPrice(symbol) {
+                try {
+                    const resp = await fetch(`${CONFIG.apiBase}/api/v3/ticker/price?symbol=${symbol}`);
+                    const data = await resp.json();
+                    return parseFloat(data.price);
+                } catch (e) {
+                    return 0;
+                }
+            }
+        }
+
+        // ============================================================
+        // SMC INDICATORS (REAL DATA ONLY)
+        // ============================================================
+        class SMCIndicators {
             // --- ADX ---
             static calculateADX(candles, period = 14) {
                 if (candles.length < period + 1) return { adx: 0, plusDI: 0, minusDI: 0 };
@@ -806,20 +1144,30 @@
                 if (candles.length < 20) return { bullish: [], bearish: [] };
                 const blocks = { bullish: [], bearish: [] };
                 const start = Math.max(0, candles.length - lookback);
-                for (let i = start + 5; i < candles.length - 5; i++) {
+                for (let i = start + 5; i < candles.length - 3; i++) {
                     const c = candles[i];
-                    const prev = candles[i - 1];
-                    const next = candles[i + 1];
-                    // Bullish OB: green candle with lower wick, then price retests
-                    if (c.close > c.open && c.close > prev.close && c.low < c.open) {
-                        if (candles[i + 2] && candles[i + 2].close > c.close) {
-                            blocks.bullish.push({ index: i, price: c.low, high: c.high });
+                    if (c.close > c.open) {
+                        // Bullish OB: strong green candle, then price retests
+                        const isStrong = (c.close - c.open) > (c.high - c.low) * 0.6;
+                        if (isStrong && c.low < c.open) {
+                            // Check if price later retested this level
+                            for (let j = i + 2; j < Math.min(i + 15, candles.length); j++) {
+                                if (candles[j].low <= c.low * 1.002 && candles[j].close > candles[j].open) {
+                                    blocks.bullish.push({ index: i, price: c.low, high: c.high });
+                                    break;
+                                }
+                            }
                         }
-                    }
-                    // Bearish OB: red candle with upper wick
-                    if (c.close < c.open && c.close < prev.close && c.high > c.open) {
-                        if (candles[i + 2] && candles[i + 2].close < c.close) {
-                            blocks.bearish.push({ index: i, price: c.high, low: c.low });
+                    } else {
+                        // Bearish OB: strong red candle
+                        const isStrong = (c.open - c.close) > (c.high - c.low) * 0.6;
+                        if (isStrong && c.high > c.open) {
+                            for (let j = i + 2; j < Math.min(i + 15, candles.length); j++) {
+                                if (candles[j].high >= c.high * 0.998 && candles[j].close < candles[j].open) {
+                                    blocks.bearish.push({ index: i, price: c.high, low: c.low });
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -831,29 +1179,101 @@
                 if (candles.length < 10) return { sweeps: [] };
                 const sweeps = [];
                 const start = Math.max(0, candles.length - lookback);
-                for (let i = start + 3; i < candles.length - 3; i++) {
+                for (let i = start + 4; i < candles.length - 3; i++) {
                     const c = candles[i];
-                    const prev3 = candles.slice(i - 3, i);
-                    const next3 = candles.slice(i + 1, i + 4);
-                    const prevLow = Math.min(...prev3.map(x => x.low));
-                    const prevHigh = Math.max(...prev3.map(x => x.high));
-                    // Sweep below (bullish)
-                    if (c.low < prevLow && c.close > c.open && c.close > prev3[prev3.length - 1].close) {
+                    const prev4 = candles.slice(i - 4, i);
+                    const prevLow = Math.min(...prev4.map(x => x.low));
+                    const prevHigh = Math.max(...prev4.map(x => x.high));
+                    // Bullish sweep: break below previous low, then close green
+                    if (c.low < prevLow && c.close > c.open && c.close > prev4[prev4.length - 1].close) {
                         sweeps.push({ index: i, type: 'bullish', price: c.low });
                     }
-                    // Sweep above (bearish)
-                    if (c.high > prevHigh && c.close < c.open && c.close < prev3[prev3.length - 1].close) {
+                    // Bearish sweep: break above previous high, then close red
+                    if (c.high > prevHigh && c.close < c.open && c.close < prev4[prev4.length - 1].close) {
                         sweeps.push({ index: i, type: 'bearish', price: c.high });
                     }
                 }
                 return { sweeps };
             }
 
+            // --- Fair Value Gap (FVG) ---
+            static findFVG(candles, lookback = 100) {
+                if (candles.length < 5) return { bullish: [], bearish: [] };
+                const fvg = { bullish: [], bearish: [] };
+                const start = Math.max(0, candles.length - lookback);
+                for (let i = start + 2; i < candles.length - 2; i++) {
+                    const c1 = candles[i - 1];
+                    const c2 = candles[i];
+                    const c3 = candles[i + 1];
+                    // Bullish FVG: gap between c1 high and c3 low
+                    if (c1.high < c3.low && c2.close > c2.open) {
+                        fvg.bullish.push({ index: i, top: c3.low, bottom: c1.high });
+                    }
+                    // Bearish FVG: gap between c1 low and c3 high
+                    if (c1.low > c3.high && c2.close < c2.open) {
+                        fvg.bearish.push({ index: i, top: c1.low, bottom: c3.high });
+                    }
+                }
+                return fvg;
+            }
+
+            // --- Market Structure (BOS & CHoCH) ---
+            static findMarketStructure(candles, lookback = 100) {
+                if (candles.length < 30) return { bos: [], choch: [] };
+                const structure = { bos: [], choch: [] };
+                const start = Math.max(0, candles.length - lookback);
+                let swingHighs = [], swingLows = [];
+                for (let i = start + 5; i < candles.length - 5; i++) {
+                    const c = candles[i];
+                    const prev5 = candles.slice(i - 5, i);
+                    const next5 = candles.slice(i + 1, i + 6);
+                    if (c.high > Math.max(...prev5.map(x => x.high)) &&
+                        c.high > Math.max(...next5.map(x => x.high))) {
+                        swingHighs.push({ index: i, price: c.high });
+                    }
+                    if (c.low < Math.min(...prev5.map(x => x.low)) &&
+                        c.low < Math.min(...next5.map(x => x.low))) {
+                        swingLows.push({ index: i, price: c.low });
+                    }
+                }
+                // CHoCH: Change of Character - break of last swing
+                if (swingHighs.length > 2) {
+                    const lastHigh = swingHighs[swingHighs.length - 1];
+                    const prevHigh = swingHighs[swingHighs.length - 2];
+                    if (lastHigh.price > prevHigh.price) {
+                        structure.choch.push({ type: 'bullish', index: lastHigh.index, price: lastHigh.price });
+                    }
+                }
+                if (swingLows.length > 2) {
+                    const lastLow = swingLows[swingLows.length - 1];
+                    const prevLow = swingLows[swingLows.length - 2];
+                    if (lastLow.price < prevLow.price) {
+                        structure.choch.push({ type: 'bearish', index: lastLow.index, price: lastLow.price });
+                    }
+                }
+                // BOS: Break of Structure
+                if (swingHighs.length > 1) {
+                    const last = swingHighs[swingHighs.length - 1];
+                    const prev = swingHighs[swingHighs.length - 2];
+                    if (last.price > prev.price) {
+                        structure.bos.push({ type: 'bullish', index: last.index, price: last.price });
+                    }
+                }
+                if (swingLows.length > 1) {
+                    const last = swingLows[swingLows.length - 1];
+                    const prev = swingLows[swingLows.length - 2];
+                    if (last.price < prev.price) {
+                        structure.bos.push({ type: 'bearish', index: last.index, price: last.price });
+                    }
+                }
+                return structure;
+            }
+
             // --- Volume Profile (POC, VAH, VAL) ---
-            static calculateVolumeProfile(candles, levels = 20) {
+            static calculateVolumeProfile(candles, levels = 30) {
                 if (candles.length < 10) return { poc: 0, vah: 0, val: 0 };
                 const prices = candles.map(c => (c.high + c.low) / 2);
-                const volumes = candles.map(c => c.volume || 0);
+                const volumes = candles.map(c => c.volume || 1);
                 const minP = Math.min(...prices);
                 const maxP = Math.max(...prices);
                 const step = (maxP - minP) / levels;
@@ -861,11 +1281,10 @@
                 const buckets = Array(levels).fill(0);
                 prices.forEach((p, i) => {
                     const idx = Math.min(Math.floor((p - minP) / step), levels - 1);
-                    buckets[idx] += volumes[i] || 1;
+                    buckets[idx] += volumes[i];
                 });
                 const maxIdx = buckets.indexOf(Math.max(...buckets));
                 const poc = minP + maxIdx * step + step / 2;
-                // VAH: upper 68% of volume
                 let cumSum = 0;
                 const totalVol = buckets.reduce((a, b) => a + b, 0);
                 let vahIdx = maxIdx;
@@ -880,9 +1299,9 @@
                     if (cumSum >= totalVol * 0.68) { valIdx = i; break; }
                 }
                 return {
-                    poc: poc,
-                    vah: minP + vahIdx * step + step / 2,
-                    val: minP + valIdx * step + step / 2
+                    poc: Utils.round(poc, 2),
+                    vah: Utils.round(minP + vahIdx * step + step / 2, 2),
+                    val: Utils.round(minP + valIdx * step + step / 2, 2)
                 };
             }
 
@@ -892,7 +1311,7 @@
                 let cvd = 0;
                 for (let i = 1; i < candles.length; i++) {
                     const c = candles[i];
-                    const delta = c.close > c.open ? c.volume || 1 : -(c.volume || 1);
+                    const delta = c.close > c.open ? (c.volume || 1) : -(c.volume || 1);
                     cvd += delta;
                 }
                 return cvd;
@@ -904,8 +1323,8 @@
                 const close = candles.map(c => c.close);
                 const sma = close.slice(-period).reduce((a, b) => a + b, 0) / period;
                 const last = close[close.length - 1];
-                if (last > sma * 1.01) return 'bullish';
-                if (last < sma * 0.99) return 'bearish';
+                if (last > sma * 1.02) return 'bullish';
+                if (last < sma * 0.98) return 'bearish';
                 return 'neutral';
             }
 
@@ -922,6 +1341,8 @@
                         cvd: 0,
                         orderBlocks: { bullish: [], bearish: [] },
                         liquiditySweeps: { sweeps: [] },
+                        fvg: { bullish: [], bearish: [] },
+                        structure: { bos: [], choch: [] },
                         confidence: 0
                     };
                 }
@@ -931,16 +1352,21 @@
                 const cvd = this.calculateCVD(candles);
                 const ob = this.findOrderBlocks(candles);
                 const ls = this.findLiquiditySweeps(candles);
+                const fvg = this.findFVG(candles);
+                const structure = this.findMarketStructure(candles);
                 const trend = this.detectTrend(candles);
-                // Confidence based on conditions
+
                 const conditions = {
                     adx: adxData.adx >= CONFIG.adxThreshold,
                     trend: trend !== 'neutral',
                     ob: ob.bullish.length > 0 || ob.bearish.length > 0,
                     ls: ls.sweeps.length > 0,
+                    fvg: fvg.bullish.length > 0 || fvg.bearish.length > 0,
+                    structure: structure.bos.length > 0 || structure.choch.length > 0,
                     vp: vp.poc > 0
                 };
                 const confidence = Utils.calculateConfidence(conditions);
+
                 return {
                     trend,
                     adx: adxData.adx,
@@ -953,22 +1379,24 @@
                     cvd,
                     orderBlocks: ob,
                     liquiditySweeps: ls,
-                    confidence
+                    fvg,
+                    structure,
+                    confidence,
+                    conditions
                 };
             }
         }
 
         // ============================================================
-        // 5. DECISION ENGINE
+        // DECISION ENGINE
         // ============================================================
         class DecisionEngine {
-            static evaluate(candles, analysis) {
+            static evaluate(candles, analysis, symbol) {
                 if (candles.length < 30 || analysis.adx < CONFIG.adxThreshold) {
                     return { signal: null, reasons: [], confidence: 0 };
                 }
 
                 const last = candles[candles.length - 1];
-                const prev = candles[candles.length - 2];
                 const price = last.close;
                 const adx = analysis.adx;
                 const atr = analysis.atr;
@@ -978,28 +1406,33 @@
                 const cvd = analysis.cvd;
                 const ob = analysis.orderBlocks;
                 const sweeps = analysis.liquiditySweeps.sweeps;
+                const fvg = analysis.fvg;
+                const structure = analysis.structure;
 
-                // --- BUY CONDITIONS ---
-                let buyConditions = {
+                // --- BUY CONDITIONS (ALL MUST BE TRUE) ---
+                const buyConditions = {
                     adxOk: adx >= CONFIG.adxThreshold,
-                    bullishOB: ob.bullish.some(b => price >= b.price * 0.995 && price <= b.high * 1.005),
+                    bullishOB: ob.bullish.some(b => price >= b.price * 0.998 && price <= b.high * 1.005),
                     sweep: sweeps.some(s => s.type === 'bullish' && Math.abs(price - s.price) < atr * 0.5),
-                    atPOC: Math.abs(price - poc) < atr * 0.3,
+                    fvg: fvg.bullish.some(f => price >= f.bottom && price <= f.top),
+                    structure: structure.bos.some(b => b.type === 'bullish') || structure.choch.some(c => c.type === 'bullish'),
+                    atPOC: Math.abs(price - poc) < atr * 0.4,
                     cvdBullish: cvd > 0,
                     trendBullish: analysis.trend === 'bullish'
                 };
 
-                // --- SELL CONDITIONS ---
-                let sellConditions = {
+                // --- SELL CONDITIONS (ALL MUST BE TRUE) ---
+                const sellConditions = {
                     adxOk: adx >= CONFIG.adxThreshold,
-                    bearishOB: ob.bearish.some(b => price <= b.price * 1.005 && price >= b.low * 0.995),
+                    bearishOB: ob.bearish.some(b => price <= b.price * 1.002 && price >= b.low * 0.995),
                     sweep: sweeps.some(s => s.type === 'bearish' && Math.abs(price - s.price) < atr * 0.5),
-                    atPOC: Math.abs(price - poc) < atr * 0.3,
+                    fvg: fvg.bearish.some(f => price >= f.bottom && price <= f.top),
+                    structure: structure.bos.some(b => b.type === 'bearish') || structure.choch.some(c => c.type === 'bearish'),
+                    atPOC: Math.abs(price - poc) < atr * 0.4,
                     cvdBearish: cvd < 0,
                     trendBearish: analysis.trend === 'bearish'
                 };
 
-                // All conditions must be true for a signal
                 const buyAll = Object.values(buyConditions).every(v => v === true);
                 const sellAll = Object.values(sellConditions).every(v => v === true);
 
@@ -1007,17 +1440,17 @@
                 let reasons = [];
 
                 if (buyAll) {
-                    // Calculate entry, SL, TPs
                     const entry = price;
-                    const sl = entry - atr * 1.5;
+                    const sl = entry - atr * CONFIG.atrStopLossMultiplier;
                     const tp1 = entry + atr * 1.5;
                     const tp2 = entry + atr * 2.5;
-                    const tp3 = entry + atr * 4;
+                    const tp3 = entry + atr * 4.0;
                     const rr1 = (tp1 - entry) / (entry - sl);
                     const rr2 = (tp2 - entry) / (entry - sl);
                     const rr3 = (tp3 - entry) / (entry - sl);
                     signal = {
                         type: 'BUY',
+                        symbol: symbol || CONFIG.symbol,
                         entry: Utils.round(entry, 2),
                         stopLoss: Utils.round(sl, 2),
                         takeProfit1: Utils.round(tp1, 2),
@@ -1034,15 +1467,16 @@
                     reasons = Object.keys(buyConditions).filter(k => buyConditions[k]);
                 } else if (sellAll) {
                     const entry = price;
-                    const sl = entry + atr * 1.5;
+                    const sl = entry + atr * CONFIG.atrStopLossMultiplier;
                     const tp1 = entry - atr * 1.5;
                     const tp2 = entry - atr * 2.5;
-                    const tp3 = entry - atr * 4;
+                    const tp3 = entry - atr * 4.0;
                     const rr1 = (entry - tp1) / (sl - entry);
                     const rr2 = (entry - tp2) / (sl - entry);
                     const rr3 = (entry - tp3) / (sl - entry);
                     signal = {
                         type: 'SELL',
+                        symbol: symbol || CONFIG.symbol,
                         entry: Utils.round(entry, 2),
                         stopLoss: Utils.round(sl, 2),
                         takeProfit1: Utils.round(tp1, 2),
@@ -1064,140 +1498,7 @@
         }
 
         // ============================================================
-        // 6. RISK MANAGER
-        // ============================================================
-        class RiskManager {
-            static calculatePositionSize(capital, riskPercent, entry, stopLoss, leverage) {
-                const riskAmount = capital * (riskPercent / 100);
-                const riskPerUnit = Math.abs(entry - stopLoss);
-                if (riskPerUnit === 0) return { size: 0, risk: 0, margin: 0 };
-                let size = riskAmount / riskPerUnit;
-                const margin = (size * entry) / leverage;
-                return {
-                    size: Utils.round(size, 4),
-                    risk: Utils.round(riskAmount, 2),
-                    margin: Utils.round(margin, 2),
-                    leverage
-                };
-            }
-
-            static calculateRR(entry, stopLoss, takeProfit) {
-                const risk = Math.abs(entry - stopLoss);
-                const reward = Math.abs(takeProfit - entry);
-                if (risk === 0) return 0;
-                return Utils.round(reward / risk, 2);
-            }
-        }
-
-        // ============================================================
-        // 7. BACKTESTER
-        // ============================================================
-        class Backtester {
-            static run(candles, capital = 10000, riskPercent = 2, leverage = 10) {
-                if (candles.length < 100) return null;
-                let results = {
-                    totalTrades: 0,
-                    wins: 0,
-                    losses: 0,
-                    totalProfit: 0,
-                    totalLoss: 0,
-                    profitFactor: 0,
-                    winRate: 0,
-                    maxDrawdown: 0,
-                    avgProfit: 0,
-                    avgLoss: 0,
-                    trades: []
-                };
-                let balance = capital;
-                let peakBalance = capital;
-                let maxDD = 0;
-                let tradeResults = [];
-
-                // Simulate trades on historical data
-                for (let i = 50; i < candles.length - 20; i++) {
-                    const slice = candles.slice(0, i + 1);
-                    const analysis = Indicators.fullAnalysis(slice);
-                    if (analysis.adx < CONFIG.adxThreshold) continue;
-                    const decision = DecisionEngine.evaluate(slice, analysis);
-                    if (!decision.signal) continue;
-
-                    const signal = decision.signal;
-                    const entry = signal.entry;
-                    const sl = signal.stopLoss;
-                    const tp1 = signal.takeProfit1;
-                    const tp2 = signal.takeProfit2;
-                    const tp3 = signal.takeProfit3;
-
-                    // Simulate outcome using next candles
-                    let outcome = null;
-                    let exitPrice = 0;
-                    let profit = 0;
-                    for (let j = i + 1; j < Math.min(i + 30, candles.length); j++) {
-                        const c = candles[j];
-                        if (signal.type === 'BUY') {
-                            if (c.low <= sl) { outcome = 'loss'; exitPrice = sl; profit = (exitPrice - entry) * leverage / entry; break; }
-                            if (c.high >= tp3) { outcome = 'win'; exitPrice = tp3; profit = (exitPrice - entry) * leverage / entry; break; }
-                            if (c.high >= tp2) { outcome = 'win'; exitPrice = tp2; profit = (exitPrice - entry) * leverage / entry; break; }
-                            if (c.high >= tp1) { outcome = 'win'; exitPrice = tp1; profit = (exitPrice - entry) * leverage / entry; break; }
-                        } else {
-                            if (c.high >= sl) { outcome = 'loss'; exitPrice = sl; profit = (entry - exitPrice) * leverage / entry; break; }
-                            if (c.low <= tp3) { outcome = 'win'; exitPrice = tp3; profit = (entry - exitPrice) * leverage / entry; break; }
-                            if (c.low <= tp2) { outcome = 'win'; exitPrice = tp2; profit = (entry - exitPrice) * leverage / entry; break; }
-                            if (c.low <= tp1) { outcome = 'win'; exitPrice = tp1; profit = (entry - exitPrice) * leverage / entry; break; }
-                        }
-                    }
-                    if (!outcome) {
-                        // Close at last candle
-                        const last = candles[candles.length - 1];
-                        exitPrice = last.close;
-                        if (signal.type === 'BUY') {
-                            profit = (exitPrice - entry) * leverage / entry;
-                            outcome = profit > 0 ? 'win' : 'loss';
-                        } else {
-                            profit = (entry - exitPrice) * leverage / entry;
-                            outcome = profit > 0 ? 'win' : 'loss';
-                        }
-                    }
-
-                    const riskAmount = balance * (riskPercent / 100);
-                    const pnl = balance * profit * (riskPercent / 100);
-                    balance += pnl;
-                    if (balance > peakBalance) peakBalance = balance;
-                    const dd = (peakBalance - balance) / peakBalance;
-                    if (dd > maxDD) maxDD = dd;
-
-                    tradeResults.push({
-                        type: signal.type,
-                        entry,
-                        exit: exitPrice,
-                        profit: Utils.round(profit * 100, 2),
-                        pnl: Utils.round(pnl, 2),
-                        outcome,
-                        timestamp: new Date(candles[i].timestamp).toISOString()
-                    });
-                }
-
-                results.totalTrades = tradeResults.length;
-                results.wins = tradeResults.filter(t => t.outcome === 'win').length;
-                results.losses = tradeResults.filter(t => t.outcome === 'loss').length;
-                const winTrades = tradeResults.filter(t => t.outcome === 'win');
-                const lossTrades = tradeResults.filter(t => t.outcome === 'loss');
-                results.totalProfit = winTrades.reduce((sum, t) => sum + t.pnl, 0);
-                results.totalLoss = Math.abs(lossTrades.reduce((sum, t) => sum + t.pnl, 0));
-                results.profitFactor = results.totalLoss > 0 ? results.totalProfit / results.totalLoss : (results.totalProfit > 0 ? 999 : 0);
-                results.winRate = results.totalTrades > 0 ? (results.wins / results.totalTrades) * 100 : 0;
-                results.maxDrawdown = Utils.round(maxDD * 100, 2);
-                results.avgProfit = winTrades.length > 0 ? results.totalProfit / winTrades.length : 0;
-                results.avgLoss = lossTrades.length > 0 ? results.totalLoss / lossTrades.length : 0;
-                results.trades = tradeResults;
-                results.finalBalance = Utils.round(balance, 2);
-
-                return results;
-            }
-        }
-
-        // ============================================================
-        // 8. NOTIFICATION MANAGER
+        // NOTIFICATION MANAGER
         // ============================================================
         class NotificationManager {
             static async sendTelegram(message, token, chatId) {
@@ -1211,7 +1512,7 @@
                     });
                     return true;
                 } catch (e) {
-                    console.warn('Telegram notification failed:', e);
+                    console.warn('Telegram failed:', e);
                     return false;
                 }
             }
@@ -1226,369 +1527,140 @@
                     });
                     return true;
                 } catch (e) {
-                    console.warn('Discord notification failed:', e);
+                    console.warn('Discord failed:', e);
                     return false;
-                }
-            }
-
-            static playSound(type) {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.type = 'sine';
-                    if (type === 'buy') {
-                        osc.frequency.value = 880;
-                        gain.gain.value = 0.3;
-                        osc.start();
-                        osc.stop(ctx.currentTime + 0.3);
-                        setTimeout(() => {
-                            const osc2 = ctx.createOscillator();
-                            const gain2 = ctx.createGain();
-                            osc2.connect(gain2);
-                            gain2.connect(ctx.destination);
-                            osc2.type = 'sine';
-                            osc2.frequency.value = 1100;
-                            gain2.gain.value = 0.3;
-                            osc2.start();
-                            osc2.stop(ctx.currentTime + 0.2);
-                        }, 200);
-                    } else if (type === 'sell') {
-                        osc.frequency.value = 440;
-                        gain.gain.value = 0.3;
-                        osc.start();
-                        osc.stop(ctx.currentTime + 0.4);
-                        setTimeout(() => {
-                            const osc2 = ctx.createOscillator();
-                            const gain2 = ctx.createGain();
-                            osc2.connect(gain2);
-                            gain2.connect(ctx.destination);
-                            osc2.type = 'sine';
-                            osc2.frequency.value = 330;
-                            gain2.gain.value = 0.3;
-                            osc2.start();
-                            osc2.stop(ctx.currentTime + 0.3);
-                        }, 300);
-                    }
-                } catch (e) {
-                    console.warn('Sound playback failed:', e);
                 }
             }
 
             static async notify(signal) {
                 if (!signal) return;
                 const msg = `🚨 <b>${signal.type} SIGNAL</b> 🚨\n` +
-                    `💰 العملة: ${CONFIG.symbol}\n` +
+                    `💰 العملة: ${signal.symbol}\n` +
                     `📊 الدخول: ${signal.entry}\n` +
-                    `🛑 وقف الخسارة: ${signal.stopLoss}\n` +
+                    `🛑 وقف: ${signal.stopLoss}\n` +
                     `🎯 TP1: ${signal.takeProfit1} (RR: ${signal.rr1})\n` +
                     `🎯 TP2: ${signal.takeProfit2} (RR: ${signal.rr2})\n` +
                     `🎯 TP3: ${signal.takeProfit3} (RR: ${signal.rr3})\n` +
                     `📈 الثقة: ${signal.confidence}%\n` +
                     `⏰ ${new Date().toLocaleString()}`;
 
-                // Play sound
-                this.playSound(signal.type.toLowerCase());
-
-                // Telegram
                 if (CONFIG.telegramToken && CONFIG.telegramChat) {
                     await this.sendTelegram(msg, CONFIG.telegramToken, CONFIG.telegramChat);
                 }
-
-                // Discord
                 if (CONFIG.discordWebhook) {
                     await this.sendDiscord(msg.replace(/<[^>]*>/g, ''), CONFIG.discordWebhook);
                 }
-
-                // Browser notification
                 if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`${signal.type} Signal`, {
-                        body: `${CONFIG.symbol} - Entry: ${signal.entry}`,
-                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚀</text></svg>'
+                    new Notification(`${signal.type} Signal - ${signal.symbol}`, {
+                        body: `Entry: ${signal.entry}`,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📊</text></svg>'
                     });
                 }
             }
         }
 
         // ============================================================
-        // 9. WEBSOCKET MANAGER (Simulated)
+        // CHART MANAGER (TradingView Lightweight Charts)
         // ============================================================
-        class WebSocketManager {
-            static connect(symbol, timeframe, onData) {
-                if (DataStore.ws) {
-                    try { DataStore.ws.close(); } catch (e) {}
-                }
-                // Simulate WebSocket with interval
-                console.log(`🔌 بدء محاكاة WebSocket لـ ${symbol} - ${timeframe}`);
-                let lastPrice = 50000 + Math.random() * 5000;
-                let lastTime = Date.now();
-
-                DataStore.ws = setInterval(() => {
-                    const change = (Math.random() - 0.5) * 100;
-                    lastPrice += change;
-                    if (lastPrice < 1000) lastPrice = 1000 + Math.random() * 1000;
-                    const open = lastPrice - (Math.random() - 0.5) * 50;
-                    const close = lastPrice + (Math.random() - 0.5) * 30;
-                    const high = Math.max(open, close) + Math.random() * 40;
-                    const low = Math.min(open, close) - Math.random() * 40;
-                    const volume = 10 + Math.random() * 90;
-
-                    const candle = {
-                        timestamp: Date.now(),
-                        open: Utils.round(open, 2),
-                        high: Utils.round(high, 2),
-                        low: Utils.round(low, 2),
-                        close: Utils.round(close, 2),
-                        volume: Utils.round(volume, 2)
-                    };
-
-                    DataStore.prices[symbol] = candle.close;
-                    onData && onData(candle);
-                }, 1000); // 1 second interval
-
-                return DataStore.ws;
-            }
-
-            static disconnect() {
-                if (DataStore.ws) {
-                    clearInterval(DataStore.ws);
-                    DataStore.ws = null;
-                }
-            }
-
-            static getPrice(symbol) {
-                return DataStore.prices[symbol] || 0;
-            }
-        }
-
-        // ============================================================
-        // 10. CHART RENDERER (Canvas-based)
-        // ============================================================
-        class ChartRenderer {
+        class ChartManager {
             constructor(containerId) {
                 this.container = document.getElementById(containerId);
-                this.canvas = document.createElement('canvas');
-                this.canvas.width = this.container.clientWidth;
-                this.canvas.height = this.container.clientHeight;
-                this.container.appendChild(this.canvas);
-                this.ctx = this.canvas.getContext('2d');
-                this.candles = [];
-                this.indicators = { showOB: true, showLQ: true, showVP: true, showCVD: true, showADX: true };
+                this.chart = LightweightCharts.createChart(this.container, {
+                    width: this.container.clientWidth,
+                    height: this.container.clientHeight,
+                    layout: {
+                        background: { color: '#0d1117' },
+                        textColor: '#c9d1d9',
+                    },
+                    grid: {
+                        vertLines: { color: '#21262d' },
+                        horzLines: { color: '#21262d' },
+                    },
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                    },
+                    rightPriceScale: {
+                        borderColor: '#30363d',
+                    },
+                    timeScale: {
+                        borderColor: '#30363d',
+                        timeVisible: true,
+                    },
+                });
+                this.candleSeries = this.chart.addCandlestickSeries({
+                    upColor: '#2ea043',
+                    downColor: '#f85149',
+                    borderUpColor: '#2ea043',
+                    borderDownColor: '#f85149',
+                    wickUpColor: '#2ea043',
+                    wickDownColor: '#f85149',
+                });
+                this.indicatorSeries = [];
                 this.resizeObserver = new ResizeObserver(() => this.resize());
                 this.resizeObserver.observe(this.container);
                 window.addEventListener('resize', () => this.resize());
             }
 
             resize() {
-                this.canvas.width = this.container.clientWidth;
-                this.canvas.height = this.container.clientHeight;
-                this.render();
+                this.chart.resize(this.container.clientWidth, this.container.clientHeight);
             }
 
             setData(candles) {
-                this.candles = candles;
-                this.render();
+                if (!candles || candles.length === 0) return;
+                const data = candles.map(c => ({
+                    time: Math.floor(c.timestamp / 1000),
+                    open: c.open,
+                    high: c.high,
+                    low: c.low,
+                    close: c.close
+                }));
+                this.candleSeries.setData(data);
             }
 
-            setIndicators(showOB, showLQ, showVP, showCVD, showADX) {
-                this.indicators = { showOB, showLQ, showVP, showCVD, showADX };
-                this.render();
+            clearIndicators() {
+                this.indicatorSeries.forEach(s => this.chart.removeSeries(s));
+                this.indicatorSeries = [];
             }
 
-            render() {
-                const ctx = this.ctx;
-                const w = this.canvas.width;
-                const h = this.canvas.height;
-                ctx.clearRect(0, 0, w, h);
+            addIndicator(data, color = '#58a6ff', type = 'line') {
+                const series = this.chart.addLineSeries({
+                    color: color,
+                    lineWidth: 1,
+                    crosshairMarkerVisible: true,
+                });
+                series.setData(data.map(d => ({
+                    time: Math.floor(d.time / 1000) || d.time,
+                    value: d.value
+                })));
+                this.indicatorSeries.push(series);
+            }
 
-                if (this.candles.length < 2) {
-                    ctx.fillStyle = '#8b949e';
-                    ctx.font = '16px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('⏳ انتظار البيانات...', w / 2, h / 2);
-                    return;
-                }
-
-                // Calculate ranges
-                const allHighs = this.candles.map(c => c.high);
-                const allLows = this.candles.map(c => c.low);
-                const maxPrice = Math.max(...allHighs);
-                const minPrice = Math.min(...allLows);
-                const range = maxPrice - minPrice || 1;
-                const padding = 20;
-                const chartH = h - padding * 2;
-                const chartW = w - padding * 2;
-                const candleW = Math.min(8, chartW / this.candles.length * 0.7);
-                const gap = chartW / this.candles.length;
-
-                const toY = (price) => padding + chartH - ((price - minPrice) / range) * chartH;
-                const toX = (index) => padding + index * gap + gap / 2;
-
-                // Draw grid
-                ctx.strokeStyle = '#21262d';
-                ctx.lineWidth = 0.5;
-                for (let i = 0; i <= 10; i++) {
-                    const y = padding + (chartH / 10) * i;
-                    ctx.beginPath();
-                    ctx.moveTo(padding, y);
-                    ctx.lineTo(w - padding, y);
-                    ctx.stroke();
-                }
-
-                // Draw candles
-                const start = Math.max(0, this.candles.length - 200);
-                for (let i = start; i < this.candles.length; i++) {
-                    const c = this.candles[i];
-                    const x = toX(i - start);
-                    const yHigh = toY(c.high);
-                    const yLow = toY(c.low);
-                    const yOpen = toY(c.open);
-                    const yClose = toY(c.close);
-                    const isGreen = c.close >= c.open;
-
-                    ctx.strokeStyle = isGreen ? '#2ea043' : '#f85149';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(x, yHigh);
-                    ctx.lineTo(x, yLow);
-                    ctx.stroke();
-
-                    ctx.fillStyle = isGreen ? '#2ea043' : '#f85149';
-                    const top = Math.min(yOpen, yClose);
-                    const bottom = Math.max(yOpen, yClose);
-                    ctx.fillRect(x - candleW / 2, top, candleW, bottom - top || 1);
-                }
-
-                // Draw indicators
-                const analysis = Indicators.fullAnalysis(this.candles);
-                if (this.indicators.showOB) {
-                    const ob = analysis.orderBlocks;
-                    ob.bullish.forEach(b => {
-                        if (b.index >= start) {
-                            const x = toX(b.index - start);
-                            ctx.fillStyle = 'rgba(46, 160, 67, 0.2)';
-                            ctx.fillRect(x - 10, toY(b.price), 20, toY(b.high) - toY(b.price));
-                            ctx.strokeStyle = '#2ea043';
-                            ctx.lineWidth = 1;
-                            ctx.strokeRect(x - 10, toY(b.price), 20, toY(b.high) - toY(b.price));
-                        }
+            drawOrderBlocks(blocks, type = 'bullish') {
+                const color = type === 'bullish' ? '#2ea043' : '#f85149';
+                const fillColor = type === 'bullish' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)';
+                blocks.forEach(b => {
+                    const time = Math.floor(b.timestamp / 1000) || b.time;
+                    // Draw rectangle using series markers
+                    // Simplified: use price line
+                    const series = this.chart.addLineSeries({
+                        color: color,
+                        lineWidth: 1,
+                        lineStyle: LightweightCharts.LineStyle.Dashed,
                     });
-                    ob.bearish.forEach(b => {
-                        if (b.index >= start) {
-                            const x = toX(b.index - start);
-                            ctx.fillStyle = 'rgba(248, 81, 73, 0.2)';
-                            ctx.fillRect(x - 10, toY(b.low), 20, toY(b.price) - toY(b.low));
-                            ctx.strokeStyle = '#f85149';
-                            ctx.lineWidth = 1;
-                            ctx.strokeRect(x - 10, toY(b.low), 20, toY(b.price) - toY(b.low));
-                        }
-                    });
-                }
-
-                if (this.indicators.showLQ) {
-                    const sweeps = analysis.liquiditySweeps.sweeps;
-                    sweeps.forEach(s => {
-                        if (s.index >= start) {
-                            const x = toX(s.index - start);
-                            ctx.fillStyle = s.type === 'bullish' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)';
-                            ctx.beginPath();
-                            ctx.arc(x, toY(s.price), 12, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.strokeStyle = s.type === 'bullish' ? '#2ea043' : '#f85149';
-                            ctx.lineWidth = 1.5;
-                            ctx.beginPath();
-                            ctx.arc(x, toY(s.price), 12, 0, Math.PI * 2);
-                            ctx.stroke();
-                        }
-                    });
-                }
-
-                if (this.indicators.showVP) {
-                    const vp = analysis;
-                    if (vp.poc > 0) {
-                        const pocY = toY(vp.poc);
-                        ctx.strokeStyle = '#f0883e';
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([4, 4]);
-                        ctx.beginPath();
-                        ctx.moveTo(padding, pocY);
-                        ctx.lineTo(w - padding, pocY);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                        ctx.fillStyle = '#f0883e';
-                        ctx.font = '10px sans-serif';
-                        ctx.textAlign = 'left';
-                        ctx.fillText('POC: ' + Utils.formatPrice(vp.poc), padding + 5, pocY - 5);
-
-                        if (vp.vah > 0) {
-                            const vahY = toY(vp.vah);
-                            ctx.strokeStyle = '#8b949e';
-                            ctx.lineWidth = 0.5;
-                            ctx.setLineDash([2, 4]);
-                            ctx.beginPath();
-                            ctx.moveTo(padding, vahY);
-                            ctx.lineTo(w - padding, vahY);
-                            ctx.stroke();
-                            ctx.setLineDash([]);
-                            ctx.fillStyle = '#8b949e';
-                            ctx.fillText('VAH: ' + Utils.formatPrice(vp.vah), padding + 5, vahY - 5);
-                        }
-                        if (vp.val > 0) {
-                            const valY = toY(vp.val);
-                            ctx.strokeStyle = '#8b949e';
-                            ctx.lineWidth = 0.5;
-                            ctx.setLineDash([2, 4]);
-                            ctx.beginPath();
-                            ctx.moveTo(padding, valY);
-                            ctx.lineTo(w - padding, valY);
-                            ctx.stroke();
-                            ctx.setLineDash([]);
-                            ctx.fillStyle = '#8b949e';
-                            ctx.fillText('VAL: ' + Utils.formatPrice(vp.val), padding + 5, valY - 5);
-                        }
-                    }
-                }
-
-                // Price label
-                const lastPrice = this.candles[this.candles.length - 1].close;
-                ctx.fillStyle = '#c9d1d9';
-                ctx.font = '14px sans-serif';
-                ctx.textAlign = 'right';
-                ctx.fillText('$' + Utils.formatPrice(lastPrice), w - padding - 5, padding + 20);
+                    series.setData([{ time: time, value: b.price }]);
+                    this.indicatorSeries.push(series);
+                });
             }
         }
 
         // ============================================================
-        // 11. UI MANAGER
+        // UI MANAGER
         // ============================================================
         class UIManager {
             static init() {
                 // Load symbols
-                const listEl = document.getElementById('symbol-list');
-                DataStore.symbols.forEach(sym => {
-                    const div = document.createElement('div');
-                    div.className = 'symbol-item' + (sym === CONFIG.symbol ? ' active' : '');
-                    div.innerHTML = `<span class="sym">${sym}</span><span class="price">${Utils.formatPrice(DataStore.prices[sym] || 0)}</span>`;
-                    div.dataset.symbol = sym;
-                    div.addEventListener('click', () => {
-                        document.querySelectorAll('.symbol-item').forEach(el => el.classList.remove('active'));
-                        div.classList.add('active');
-                        CONFIG.symbol = sym;
-                        this.onSymbolChange(sym);
-                    });
-                    listEl.appendChild(div);
-                });
-
-                // Search
-                document.getElementById('symbol-search').addEventListener('input', (e) => {
-                    const q = e.target.value.toLowerCase();
-                    document.querySelectorAll('.symbol-item').forEach(el => {
-                        el.style.display = el.dataset.symbol.toLowerCase().includes(q) ? 'flex' : 'none';
-                    });
-                });
-
+                this.loadSymbols();
+                
                 // Timeframe buttons
                 document.querySelectorAll('.tf-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
@@ -1599,23 +1671,6 @@
                     });
                 });
 
-                // Indicator toggles
-                document.getElementById('show-ob').addEventListener('change', (e) => {
-                    UIManager.updateIndicators();
-                });
-                document.getElementById('show-lq').addEventListener('change', (e) => {
-                    UIManager.updateIndicators();
-                });
-                document.getElementById('show-vp').addEventListener('change', (e) => {
-                    UIManager.updateIndicators();
-                });
-                document.getElementById('show-cvd').addEventListener('change', (e) => {
-                    UIManager.updateIndicators();
-                });
-                document.getElementById('show-adx').addEventListener('change', (e) => {
-                    UIManager.updateIndicators();
-                });
-
                 // Settings
                 document.getElementById('settings-btn').addEventListener('click', () => {
                     document.getElementById('settings-modal').classList.add('active');
@@ -1624,13 +1679,11 @@
                     document.getElementById('settings-modal').classList.remove('active');
                 });
                 document.getElementById('save-settings').addEventListener('click', () => {
-                    CONFIG.capital = parseFloat(document.getElementById('capital-input').value) || 10000;
                     CONFIG.riskPercent = parseFloat(document.getElementById('risk-input').value) || 2;
-                    CONFIG.leverage = parseFloat(document.getElementById('leverage-input').value) || 10;
+                    CONFIG.atrStopLossMultiplier = parseFloat(document.getElementById('atr-sl-multiplier').value) || 1.5;
                     CONFIG.telegramToken = document.getElementById('telegram-token').value;
                     CONFIG.telegramChat = document.getElementById('telegram-chat').value;
                     CONFIG.discordWebhook = document.getElementById('discord-webhook').value;
-                    document.getElementById('balance-display').textContent = '$' + Utils.formatPrice(CONFIG.capital);
                     document.getElementById('settings-modal').classList.remove('active');
                     localStorage.setItem('smc_config', JSON.stringify(CONFIG));
                 });
@@ -1641,21 +1694,13 @@
                     this.renderSignals();
                 });
 
-                // Backtest
-                document.getElementById('backtest-btn').addEventListener('click', () => {
-                    this.runBacktest();
+                // Symbol search
+                document.getElementById('symbol-search').addEventListener('input', (e) => {
+                    const q = e.target.value.toLowerCase();
+                    document.querySelectorAll('.symbol-item').forEach(el => {
+                        el.style.display = el.dataset.symbol.toLowerCase().includes(q) ? 'flex' : 'none';
+                    });
                 });
-
-                // Theme toggle
-                document.getElementById('theme-toggle').addEventListener('click', () => {
-                    document.body.classList.toggle('light-theme');
-                    document.getElementById('theme-toggle').textContent = document.body.classList.contains('light-theme') ? '☀️' : '🌙';
-                });
-
-                // Request notification permission
-                if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission();
-                }
 
                 // Load saved config
                 const saved = localStorage.getItem('smc_config');
@@ -1663,124 +1708,115 @@
                     try {
                         const cfg = JSON.parse(saved);
                         Object.assign(CONFIG, cfg);
-                        document.getElementById('capital-input').value = CONFIG.capital;
                         document.getElementById('risk-input').value = CONFIG.riskPercent;
-                        document.getElementById('leverage-input').value = CONFIG.leverage;
+                        document.getElementById('atr-sl-multiplier').value = CONFIG.atrStopLossMultiplier;
                         document.getElementById('telegram-token').value = CONFIG.telegramToken || '';
                         document.getElementById('telegram-chat').value = CONFIG.telegramChat || '';
                         document.getElementById('discord-webhook').value = CONFIG.discordWebhook || '';
-                        document.getElementById('balance-display').textContent = '$' + Utils.formatPrice(CONFIG.capital);
                     } catch (e) {}
                 }
 
-                // Generate initial data
-                this.generateMockData();
-                // Start WebSocket
-                WebSocketManager.connect(CONFIG.symbol, CONFIG.timeframe, (candle) => {
-                    DataStore.candles.push(candle);
-                    if (DataStore.candles.length > 500) DataStore.candles.splice(0, 100);
-                    this.onNewCandle(candle);
+                // Request notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+
+                // Start with initial symbol
+                this.onSymbolChange(CONFIG.symbol);
+
+                // Start scanning
+                this.startScanning();
+            }
+
+            static async loadSymbols() {
+                const symbols = await BinanceAPI.getSymbols();
+                DataStore.symbols = symbols;
+                const listEl = document.getElementById('symbol-list');
+                listEl.innerHTML = '';
+                symbols.forEach(sym => {
+                    const div = document.createElement('div');
+                    div.className = 'symbol-item' + (sym === CONFIG.symbol ? ' active' : '');
+                    div.innerHTML = `<span class="sym">${sym}</span><span class="price">--</span>`;
+                    div.dataset.symbol = sym;
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('.symbol-item').forEach(el => el.classList.remove('active'));
+                        div.classList.add('active');
+                        CONFIG.symbol = sym;
+                        this.onSymbolChange(sym);
+                    });
+                    listEl.appendChild(div);
                 });
             }
 
-            static updateIndicators() {
+            static async onSymbolChange(symbol) {
+                CONFIG.symbol = symbol;
+                document.getElementById('status-text').textContent = 'جاري التحميل...';
+                document.getElementById('signal-badge').className = 'signal-badge wait';
+                document.getElementById('signal-badge').textContent = '⏳ تحميل...';
+                
+                const candles = await BinanceAPI.getCandles(symbol, CONFIG.timeframe);
+                if (candles.length > 0) {
+                    DataStore.candles[symbol] = candles;
+                    this.updateChart(symbol);
+                    this.updateAnalysis(symbol);
+                    document.getElementById('status-text').textContent = 'متصل';
+                } else {
+                    document.getElementById('status-text').textContent = 'فشل التحميل';
+                }
+            }
+
+            static async onTimeframeChange(tf) {
+                CONFIG.timeframe = tf;
+                await this.onSymbolChange(CONFIG.symbol);
+            }
+
+            static updateChart(symbol) {
+                const candles = DataStore.candles[symbol];
+                if (!candles || candles.length === 0) return;
+                
+                if (!window.chartManager) {
+                    window.chartManager = new ChartManager('chart');
+                }
+                window.chartManager.setData(candles);
+                
+                // Draw indicators based on toggles
                 const showOB = document.getElementById('show-ob').checked;
                 const showLQ = document.getElementById('show-lq').checked;
+                const showFVG = document.getElementById('show-fvg').checked;
                 const showVP = document.getElementById('show-vp').checked;
-                const showCVD = document.getElementById('show-cvd').checked;
-                const showADX = document.getElementById('show-adx').checked;
-                if (window.chartRenderer) {
-                    window.chartRenderer.setIndicators(showOB, showLQ, showVP, showCVD, showADX);
-                }
-            }
-
-            static onSymbolChange(symbol) {
-                CONFIG.symbol = symbol;
-                DataStore.candles = [];
-                this.generateMockData();
-                WebSocketManager.disconnect();
-                WebSocketManager.connect(symbol, CONFIG.timeframe, (candle) => {
-                    DataStore.candles.push(candle);
-                    if (DataStore.candles.length > 500) DataStore.candles.splice(0, 100);
-                    this.onNewCandle(candle);
-                });
-                document.getElementById('signal-content').innerHTML = '<div class="signal-empty">⏳ في انتظار إشارة...</div>';
-                document.getElementById('signal-badge').className = 'signal-badge wait';
-                document.getElementById('signal-badge').textContent = '⏳ انتظار';
-            }
-
-            static onTimeframeChange(tf) {
-                CONFIG.timeframe = tf;
-                DataStore.candles = [];
-                this.generateMockData();
-                WebSocketManager.disconnect();
-                WebSocketManager.connect(CONFIG.symbol, tf, (candle) => {
-                    DataStore.candles.push(candle);
-                    if (DataStore.candles.length > 500) DataStore.candles.splice(0, 100);
-                    this.onNewCandle(candle);
-                });
-            }
-
-            static generateMockData() {
-                const now = Date.now();
-                let price = 50000 + Math.random() * 10000;
-                for (let i = 0; i < 200; i++) {
-                    const change = (Math.random() - 0.5) * 200;
-                    price += change;
-                    if (price < 1000) price = 1000 + Math.random() * 1000;
-                    const open = price - (Math.random() - 0.5) * 50;
-                    const close = price + (Math.random() - 0.5) * 30;
-                    const high = Math.max(open, close) + Math.random() * 40;
-                    const low = Math.min(open, close) - Math.random() * 40;
-                    DataStore.candles.push({
-                        timestamp: now - (200 - i) * 60000,
-                        open: Utils.round(open, 2),
-                        high: Utils.round(high, 2),
-                        low: Utils.round(low, 2),
-                        close: Utils.round(close, 2),
-                        volume: Utils.round(10 + Math.random() * 90, 2)
+                const showStruct = document.getElementById('show-struct').checked;
+                
+                window.chartManager.clearIndicators();
+                
+                const analysis = SMCIndicators.fullAnalysis(candles);
+                DataStore.analysis = analysis;
+                
+                if (showOB) {
+                    analysis.orderBlocks.bullish.forEach(b => {
+                        window.chartManager.addIndicator([{ time: b.index, value: b.price }], '#2ea043');
+                    });
+                    analysis.orderBlocks.bearish.forEach(b => {
+                        window.chartManager.addIndicator([{ time: b.index, value: b.price }], '#f85149');
                     });
                 }
+                if (showVP && analysis.poc > 0) {
+                    window.chartManager.addIndicator([{ time: candles[candles.length - 1].timestamp, value: analysis.poc }], '#f0883e');
+                }
             }
 
-            static onNewCandle(candle) {
-                // Update chart
-                if (window.chartRenderer) {
-                    window.chartRenderer.setData(DataStore.candles);
-                }
-
-                // Update analysis
-                const analysis = Indicators.fullAnalysis(DataStore.candles);
+            static updateAnalysis(symbol) {
+                const candles = DataStore.candles[symbol];
+                if (!candles || candles.length === 0) return;
+                
+                const analysis = SMCIndicators.fullAnalysis(candles);
                 DataStore.analysis = analysis;
-                this.updateAnalysisPanel(analysis);
-
-                // Run decision engine
-                const decision = DecisionEngine.evaluate(DataStore.candles, analysis);
-                if (decision.signal) {
-                    // Check if signal already exists
-                    const lastSignal = DataStore.signals[DataStore.signals.length - 1];
-                    if (lastSignal && lastSignal.type === decision.signal.type &&
-                        Math.abs(lastSignal.entry - decision.signal.entry) < decision.signal.atr * 0.5) {
-                        // Duplicate signal, skip
-                        return;
-                    }
-                    DataStore.signals.push(decision.signal);
-                    if (DataStore.signals.length > CONFIG.maxSignals) {
-                        DataStore.signals.splice(0, DataStore.signals.length - CONFIG.maxSignals);
-                    }
-                    this.renderSignals();
-                    this.showSignal(decision.signal);
-                    // Send notifications
-                    NotificationManager.notify(decision.signal);
-                }
-            }
-
-            static updateAnalysisPanel(analysis) {
+                
+                // Update panel
                 const trendEl = document.getElementById('trend');
                 trendEl.textContent = analysis.trend === 'bullish' ? '📈 صاعد' :
                     analysis.trend === 'bearish' ? '📉 هابط' : '➖ محايد';
                 trendEl.className = 'value ' + analysis.trend;
-
+                
                 document.getElementById('adx-value').textContent = analysis.adx.toFixed(1);
                 document.getElementById('adx-value').style.color = analysis.adx >= CONFIG.adxThreshold ? '#2ea043' : '#8b949e';
                 document.getElementById('atr-value').textContent = Utils.formatPrice(analysis.atr);
@@ -1790,6 +1826,28 @@
                 document.getElementById('cvd-value').textContent = analysis.cvd.toFixed(0);
                 document.getElementById('cvd-value').style.color = analysis.cvd > 0 ? '#2ea043' : '#f85149';
                 document.getElementById('confidence').textContent = analysis.confidence + '%';
+                
+                // Update price
+                const last = candles[candles.length - 1];
+                document.getElementById('signal-price').textContent = '$' + Utils.formatPrice(last.close);
+                
+                // Run decision engine
+                const decision = DecisionEngine.evaluate(candles, analysis, symbol);
+                if (decision.signal) {
+                    // Check for duplicate
+                    const lastSignal = DataStore.signals[DataStore.signals.length - 1];
+                    if (lastSignal && lastSignal.type === decision.signal.type &&
+                        Math.abs(lastSignal.entry - decision.signal.entry) < decision.signal.atr * 0.3) {
+                        return;
+                    }
+                    DataStore.signals.push(decision.signal);
+                    if (DataStore.signals.length > CONFIG.maxSignals) {
+                        DataStore.signals.splice(0, DataStore.signals.length - CONFIG.maxSignals);
+                    }
+                    this.renderSignals();
+                    this.showSignal(decision.signal, decision.reasons);
+                    NotificationManager.notify(decision.signal);
+                }
             }
 
             static renderSignals() {
@@ -1803,53 +1861,95 @@
                     const s = DataStore.signals[i];
                     const cls = s.type === 'BUY' ? 'buy' : 'sell';
                     html += `<div class="signal-item ${cls}">
-                        <span class="signal-type ${cls}">${s.type}</span>
-                        <span class="signal-details">دخول: ${s.entry} | SL: ${s.stopLoss} | TP1: ${s.takeProfit1} | ثقة: ${s.confidence}%</span>
-                        <span class="signal-details">${new Date(s.timestamp).toLocaleTimeString()}</span>
+                        <div class="signal-top">
+                            <span class="signal-type ${cls}">${s.type} ${s.symbol}</span>
+                            <span class="signal-conf">ثقة: ${s.confidence}%</span>
+                        </div>
+                        <div class="signal-details">
+                            <span>دخول: ${s.entry}</span>
+                            <span>SL: ${s.stopLoss}</span>
+                            <span>TP1: ${s.takeProfit1} (${s.rr1})</span>
+                            <span>TP2: ${s.takeProfit2} (${s.rr2})</span>
+                            <span>TP3: ${s.takeProfit3} (${s.rr3})</span>
+                            <span>⏰ ${new Date(s.timestamp).toLocaleTimeString()}</span>
+                        </div>
                     </div>`;
                 }
                 container.innerHTML = html;
             }
 
-            static showSignal(signal) {
+            static showSignal(signal, reasons) {
                 const badge = document.getElementById('signal-badge');
                 const cls = signal.type === 'BUY' ? 'buy' : 'sell';
                 badge.className = 'signal-badge ' + cls;
                 badge.textContent = signal.type === 'BUY' ? '📈 شراء' : '📉 بيع';
                 document.getElementById('signal-time').textContent = Utils.timestamp();
-
-                // Show signal details in console
-                console.log(`✅ إشارة ${signal.type}`, signal);
+                
+                console.log(`✅ إشارة ${signal.type} على ${signal.symbol}`, signal);
+                console.log('📋 الأسباب:', reasons);
             }
 
-            static runBacktest() {
-                if (DataStore.candles.length < 100) {
-                    alert('البيانات غير كافية للتشغيل. يرجى الانتظار لمزيد من البيانات.');
+            static updateHPSignals(signals) {
+                const container = document.getElementById('hp-content');
+                const countEl = document.getElementById('hp-count');
+                
+                if (!signals || signals.length === 0) {
+                    container.innerHTML = '<div class="hp-empty">⏳ No High Probability Signal</div>';
+                    countEl.textContent = '0';
                     return;
                 }
-                const results = Backtester.run(DataStore.candles, CONFIG.capital, CONFIG.riskPercent, CONFIG.leverage);
-                if (!results) {
-                    alert('فشل الباك تست. يرجى المحاولة مرة أخرى.');
-                    return;
-                }
-                DataStore.backtestResults = results;
-                let msg = '📊 <b>نتائج الباك تست</b>\n' +
-                    `📈 عدد الصفقات: ${results.totalTrades}\n` +
-                    `✅ نسبة الربح: ${results.winRate.toFixed(1)}%\n` +
-                    `💵 إجمالي الأرباح: $${results.totalProfit.toFixed(2)}\n` +
-                    `📉 إجمالي الخسائر: $${results.totalLoss.toFixed(2)}\n` +
-                    `📊 Profit Factor: ${results.profitFactor.toFixed(2)}\n` +
-                    `📉 Max Drawdown: ${results.maxDrawdown}%\n` +
-                    `📈 متوسط الربح: $${results.avgProfit.toFixed(2)}\n` +
-                    `📉 متوسط الخسارة: $${results.avgLoss.toFixed(2)}\n` +
-                    `💰 الرصيد النهائي: $${results.finalBalance.toFixed(2)}`;
-                alert(msg);
-                console.log('Backtest Results:', results);
+                
+                countEl.textContent = signals.length;
+                let html = '';
+                signals.slice(0, CONFIG.maxHPSignals).forEach(s => {
+                    const cls = s.type === 'BUY' ? 'buy' : 'sell';
+                    html += `<div class="hp-item ${cls}" onclick="UIManager.onSymbolChange('${s.symbol}')">
+                        <span class="hp-symbol">${s.symbol}</span>
+                        <span class="hp-type ${cls}">${s.type}</span>
+                        <span class="hp-conf">${s.confidence}%</span>
+                        <span style="font-size:9px;color:#8b949e;">${Utils.formatPrice(s.entry)}</span>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            }
+
+            static startScanning() {
+                // Scan all symbols every 30 seconds
+                setInterval(async () => {
+                    if (DataStore.isScanning) return;
+                    DataStore.isScanning = true;
+                    try {
+                        const hpSignals = [];
+                        for (const sym of DataStore.symbols) {
+                            const candles = await BinanceAPI.getCandles(sym, CONFIG.timeframe, 200);
+                            if (candles.length < 30) continue;
+                            DataStore.candles[sym] = candles;
+                            const analysis = SMCIndicators.fullAnalysis(candles);
+                            const decision = DecisionEngine.evaluate(candles, analysis, sym);
+                            if (decision.signal) {
+                                hpSignals.push(decision.signal);
+                            }
+                            // Small delay to avoid rate limiting
+                            await Utils.sleep(100);
+                        }
+                        DataStore.hpSignals = hpSignals;
+                        UIManager.updateHPSignals(hpSignals);
+                        
+                        // Update current symbol analysis
+                        if (CONFIG.symbol) {
+                            UIManager.updateAnalysis(CONFIG.symbol);
+                        }
+                    } catch (e) {
+                        console.warn('Scan error:', e);
+                    }
+                    DataStore.isScanning = false;
+                    DataStore.lastScan = Date.now();
+                }, CONFIG.scanInterval);
             }
         }
 
         // ============================================================
-        // 12. SERVICE WORKER REGISTRATION
+        // SERVICE WORKER (PWA) - Inline
         // ============================================================
         if ('serviceWorker' in navigator) {
             const swCode = `
@@ -1865,40 +1965,23 @@
         }
 
         // ============================================================
-        // 13. INITIALIZATION
+        // INITIALIZATION
         // ============================================================
         document.addEventListener('DOMContentLoaded', () => {
-            // Create chart renderer
-            window.chartRenderer = new ChartRenderer('chart');
-            // Init UI
             UIManager.init();
-            // Set initial chart data
-            setTimeout(() => {
-                if (window.chartRenderer && DataStore.candles.length > 0) {
-                    window.chartRenderer.setData(DataStore.candles);
-                }
-            }, 500);
+            console.log('📊 Crypto SMC AI Pro v3.0 - Signal Engine Only');
+            console.log('🔍 Scanning for high probability signals...');
         });
 
         // ============================================================
-        // 14. GLOBAL EXPOSURE (for debugging)
+        // GLOBAL EXPOSURE
         // ============================================================
-        window.__SMC = {
-            DataStore,
-            CONFIG,
-            Indicators,
-            DecisionEngine,
-            RiskManager,
-            Backtester,
-            NotificationManager,
-            WebSocketManager,
-            ChartRenderer,
-            UIManager,
-            Utils
-        };
-
-        console.log('🚀 Crypto SMC AI Pro loaded successfully!');
-        console.log('📊 Use window.__SMC to access internals');
+        window.UIManager = UIManager;
+        window.CONFIG = CONFIG;
+        window.DataStore = DataStore;
+        window.SMCIndicators = SMCIndicators;
+        window.DecisionEngine = DecisionEngine;
+        window.BinanceAPI = BinanceAPI;
     </script>
 </body>
-                                                  </html>
+                                                                                  </html>
