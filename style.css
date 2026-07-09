@@ -1,0 +1,345 @@
+/* =========================================================
+   Crypto SMC AI Pro — Dark Trading Theme
+   ========================================================= */
+
+:root {
+    --bg-0: #05070c;
+    --bg-1: #0b0e14;
+    --bg-2: #10141d;
+    --bg-3: #161b26;
+    --border: #232a3b;
+    --text-0: #e7eaf1;
+    --text-1: #c7ccd6;
+    --text-2: #7c869c;
+    --accent: #3b82f6;
+    --accent-soft: rgba(59, 130, 246, 0.15);
+    --green: #22c55e;
+    --green-soft: rgba(34, 197, 94, 0.15);
+    --red: #ef4444;
+    --red-soft: rgba(239, 68, 68, 0.15);
+    --amber: #f59e0b;
+    --radius: 10px;
+    --font-main: 'Segoe UI', 'Tajawal', Tahoma, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg-0);
+    color: var(--text-0);
+    font-family: var(--font-main);
+    font-size: 14px;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- App Shell ---------- */
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ---------- Topbar ---------- */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 18px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 12px; color: #fff;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-text strong { font-size: 15px; }
+.brand-text small { color: var(--text-2); font-size: 11px; }
+
+.topbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.control-select, .symbol-search input, .risk-inputs input, .modal-body input[type="text"] {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text-0);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 13px;
+    outline: none;
+}
+.control-select:focus, .symbol-search input:focus { border-color: var(--accent); }
+
+.symbol-search { position: relative; }
+.symbol-search input { width: 160px; }
+.symbol-suggestions {
+    position: absolute;
+    top: 110%; right: 0; left: 0;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 50;
+}
+.symbol-suggestions div {
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+.symbol-suggestions div:hover { background: var(--accent-soft); }
+
+.timeframe-group { display: flex; gap: 4px; background: var(--bg-2); padding: 3px; border-radius: 8px; }
+.tf-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-2);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+.tf-btn.active { background: var(--accent); color: #fff; }
+
+.status-pill {
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.status-connecting { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+.status-connected { background: var(--green-soft); color: var(--green); }
+.status-error { background: var(--red-soft); color: var(--red); }
+
+.icon-btn {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text-1);
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Main Grid ---------- */
+.main-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 220px 1fr 320px;
+    gap: 1px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.panel {
+    background: var(--bg-1);
+    padding: 14px;
+    overflow-y: auto;
+}
+
+.panel-title {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.section-title {
+    margin: 18px 0 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Symbol list */
+.symbol-list { list-style: none; margin: 0; padding: 0; }
+.symbol-list li {
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-1);
+}
+.symbol-list li:hover { background: var(--bg-3); }
+.symbol-list li.active { background: var(--accent-soft); color: var(--accent); }
+
+/* Chart panel */
+.chart-panel { display: flex; flex-direction: column; background: var(--bg-0); }
+.chart-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.active-symbol { font-weight: 800; font-size: 15px; }
+.live-price { font-weight: 700; color: var(--text-0); font-size: 15px; }
+.trend-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--bg-3); color: var(--text-2);
+}
+.trend-badge.up { background: var(--green-soft); color: var(--green); }
+.trend-badge.down { background: var(--red-soft); color: var(--red); }
+
+.chart-container { flex: 1; }
+
+/* Analysis panel */
+.metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.metric-box {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.metric-label { font-size: 10px; color: var(--text-2); text-transform: uppercase; }
+.metric-value { font-size: 14px; font-weight: 700; }
+
+.conditions-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.conditions-list li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--text-1);
+}
+.cond-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--bg-3);
+    flex-shrink: 0;
+}
+.cond-dot.on.buy { background: var(--green); }
+.cond-dot.on.sell { background: var(--red); }
+
+.confidence-bar {
+    height: 6px;
+    background: var(--bg-3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+.confidence-fill { height: 100%; width: 0%; transition: width 0.3s; }
+.confidence-fill.buy { background: var(--green); }
+.confidence-fill.sell { background: var(--red); }
+.confidence-label { font-size: 11px; color: var(--text-2); }
+
+.signal-card {
+    margin-top: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    animation: pulseIn 0.4s ease;
+}
+@keyframes pulseIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.signal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px;
+    font-weight: 800;
+}
+.signal-card:has(.signal-direction.buy) .signal-header,
+.signal-header:has(#signalDirection.buy) { background: var(--green-soft); }
+.signal-direction.buy { color: var(--green); }
+.signal-direction.sell { color: var(--red); }
+.signal-confidence { font-size: 12px; color: var(--text-2); }
+.signal-rows { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--bg-2); }
+.signal-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-1); }
+.signal-row span:last-child { font-weight: 700; color: var(--text-0); }
+
+.risk-inputs { display: flex; flex-direction: column; gap: 10px; }
+.risk-inputs label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-2); }
+.risk-inputs input { padding: 7px 8px; }
+
+/* ---------- Modals ---------- */
+.modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+}
+.modal-box {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 380px;
+    max-width: 92vw;
+    max-height: 86vh;
+    overflow-y: auto;
+}
+.modal-wide { width: 560px; }
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.modal-body label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-2); }
+.switch-row { flex-direction: row !important; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-1) !important; }
+
+.primary-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13px;
+}
+.primary-btn:hover { filter: brightness(1.1); }
+
+.hint-text { font-size: 11.5px; color: var(--text-2); line-height: 1.6; }
+
+.backtest-results { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+
+/* ---------- Toasts ---------- */
+.toast-container {
+    position: fixed;
+    bottom: 20px; left: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 200;
+}
+.toast {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-right: 4px solid var(--accent);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    min-width: 240px;
+    animation: pulseIn 0.3s ease;
+}
+.toast.buy { border-right-color: var(--green); }
+.toast.sell { border-right-color: var(--red); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+    .main-grid { grid-template-columns: 1fr; grid-auto-rows: auto; overflow-y: auto; }
+    .chart-container { height: 420px; }
+    .symbols-panel { order: 2; }
+    .chart-panel { order: 1; }
+    .analysis-panel { order: 3; }
+}

@@ -1,0 +1,21 @@
+# نظام التشغيل
+.DS_Store
+Thumbs.db
+
+# محررات الأكواد
+.vscode/
+.idea/
+*.swp
+
+# ملفات بيئية محتملة (لا توجد حاليًا في المشروع لأنه Frontend فقط بدون بناء)
+.env
+.env.local
+
+# سجلات
+*.log
+npm-debug.log*
+
+# مجلدات بناء محتملة إن أُضيفت أدوات مستقبلاً
+node_modules/
+dist/
+build/
